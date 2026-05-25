@@ -1,0 +1,7 @@
+node_modules
+dist
+.angular
+.vscode
+coverage
+e2e/.test-results
+*.log

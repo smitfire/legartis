@@ -44,6 +44,17 @@ docker-compose.override.yml
 /docs/scratch/
 /docs/review-*.md
 
+# Playwright MCP working directory and any stray screenshots at root
+.playwright-mcp/
+/*.png
+/*.jpg
+/*.jpeg
+
+# Frontend test artifacts
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/.playwright-mcp/
+
 # Backups
 *.bak
 *.backup-*

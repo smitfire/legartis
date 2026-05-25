@@ -1,7 +1,9 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# Use npm install (not npm ci) so platform-specific optional deps like
+# @emnapi/* on linux/arm64 resolve cleanly when the lock was generated on macOS.
+RUN npm install --no-audit --no-fund --include=optional
 COPY . .
 RUN npx ng build --configuration production
 

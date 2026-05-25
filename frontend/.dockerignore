@@ -3,5 +3,9 @@ dist
 .angular
 .vscode
 coverage
-e2e/.test-results
+e2e
+playwright.config.ts
+tsconfig.e2e.json
+playwright-report
+test-results
 *.log

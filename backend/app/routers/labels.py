@@ -37,9 +37,18 @@ async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) ->
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
+        # Discriminate uniqueness violations from other constraint failures so we
+        # don't tell callers "duplicate label" when it was actually a CHECK or FK
+        # violation (which would mean a bug, not a duplicate).
+        cause = str(getattr(exc, "orig", exc)).lower()
+        if "unique" in cause or "uq_label_sentence_clausetype" in cause:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Sentence is already labelled with this clause type.",
+            ) from exc
         raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            detail="Sentence is already labelled with this clause type.",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Label violates a database constraint.",
         ) from exc
 
     await db.refresh(label)

@@ -22,6 +22,7 @@ def _document_with_sentences_query(document_id: int) -> Select[tuple[Document]]:
 
 
 def _to_summary(doc: Document) -> DocumentSummary:
+    """Collapse a loaded ``Document`` into the compact dashboard summary."""
     label_count = sum(len(s.labels) for s in doc.sentences)
     clause_types = sorted(
         {ClauseType(label.clause_type) for s in doc.sentences for label in s.labels}
@@ -41,6 +42,11 @@ async def create_document(
     file: Annotated[UploadFile, File()],
     db: DbSession,
 ) -> Document:
+    """Ingest an uploaded text/markdown file and return it with segmented sentences.
+
+    The body must be UTF-8 decodable; anything else yields 415. The original
+    content is stored verbatim and sentences are persisted in source order.
+    """
     raw = await file.read()
     try:
         content = raw.decode("utf-8")
@@ -76,6 +82,14 @@ async def list_documents(
     ] = None,
     group_by: Annotated[Literal["type"] | None, Query()] = None,
 ) -> list[DocumentSummary] | GroupedDocuments:
+    """List document summaries, with optional search, type filter, and grouping.
+
+    Filters are applied server-side: ``q`` is case-insensitive substring
+    match on title or content; ``type`` is OR-combined across values. When
+    ``group_by=type`` is set the response shape switches to
+    ``GroupedDocuments`` and each document appears once per clause type it
+    contains.
+    """
     stmt = (
         select(Document)
         .options(selectinload(Document.sentences).selectinload(Sentence.labels))
@@ -125,6 +139,7 @@ async def list_documents(
 
 @router.get("/{document_id}", response_model=DocumentOut)
 async def get_document(document_id: int, db: DbSession) -> Document:
+    """Return one document with its sentences and labels eagerly loaded; 404 if missing."""
     result = await db.execute(_document_with_sentences_query(document_id))
     doc = result.scalar_one_or_none()
     if doc is None:

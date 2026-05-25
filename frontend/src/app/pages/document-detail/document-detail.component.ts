@@ -11,6 +11,12 @@ import { ApiService } from '../../core/api.service';
 import { clauseTypeColor } from '../../core/clause-type-color';
 import type { ClauseType, ClauseTypeOption, DocumentDetail } from '../../core/models';
 
+/**
+ * Document detail view: renders every sentence with its labels, lets a user
+ * add/remove labels per sentence, and refetches in place so the rendered
+ * order stays stable. Wired to the `:id` route param via component input
+ * binding.
+ */
 @Component({
   selector: 'app-document-detail',
   imports: [
@@ -27,7 +33,7 @@ import type { ClauseType, ClauseTypeOption, DocumentDetail } from '../../core/mo
   styleUrl: './document-detail.component.scss',
 })
 export class DocumentDetailComponent {
-  // From withComponentInputBinding() on the route — :id maps to this input.
+  /** Document id bound from the `:id` route param (via `withComponentInputBinding()`). */
   readonly id = input.required<string>();
 
   private readonly api = inject(ApiService);
@@ -42,8 +48,6 @@ export class DocumentDetailComponent {
   constructor() {
     this.api.listClauseTypes().subscribe((opts) => this.clauseTypes.set(opts));
 
-    // Reload whenever the route param changes. Reading the signal inside an
-    // effect ensures the input is bound before we touch it.
     effect(() => {
       const id = this.id();
       if (id) this.load();

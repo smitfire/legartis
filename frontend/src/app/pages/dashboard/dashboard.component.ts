@@ -24,6 +24,11 @@ import type {
   GroupedDocuments,
 } from '../../core/models';
 
+/**
+ * Single-signal view model for the dashboard list. Exactly one of `flat` or
+ * `groups` is populated per render — `groups` is non-null only when grouping
+ * by clause type is enabled.
+ */
 interface ViewState {
   loading: boolean;
   flat: DocumentSummary[];
@@ -31,6 +36,11 @@ interface ViewState {
   error: string | null;
 }
 
+/**
+ * Dashboard view: search, clause-type filter chips, and optional grouping by
+ * clause type. All filtering happens server-side; this component only owns
+ * input state and renders whatever `/api/documents` returns.
+ */
 @Component({
   selector: 'app-dashboard',
   imports: [
@@ -113,12 +123,15 @@ export class DashboardComponent {
     return this.clauseTypes().find((c) => c.value === type)?.label ?? type;
   }
 
+  /**
+   * Refetches counts and the document list together. Chip counts intentionally
+   * reflect the current search query (not selected types) so users never click
+   * a filter that would yield zero results in the visible set.
+   */
   private refresh(): void {
     const q = this.query().trim() || undefined;
     this.state.update((s) => ({ ...s, loading: true, error: null }));
 
-    // Chip counts always reflect the search query so users never click a
-    // filter that would yield zero results in the current view.
     this.api.listClauseTypeCounts(q).subscribe((counts) => this.clauseTypes.set(counts));
 
     this.api

@@ -1,7 +1,9 @@
 import type { ClauseType } from './models';
 
-// Tonal colors that work on both light and dark surfaces. Each clause type
-// gets a stable hue so the dashboard and document-detail views agree.
+/**
+ * Tonal palette keyed by clause type. Each hue is stable so the dashboard,
+ * document-detail, and any badge views agree on the same colour per type.
+ */
 const COLORS: Record<ClauseType, { bg: string; fg: string }> = {
   limitation_of_liability: { bg: '#fde2e2', fg: '#7a1f1f' },
   termination_for_convenience: { bg: '#fde7c8', fg: '#7a4318' },
@@ -12,6 +14,7 @@ const COLORS: Record<ClauseType, { bg: string; fg: string }> = {
   force_majeure: { bg: '#f5d6e9', fg: '#6a1647' },
 };
 
+/** Background/foreground pair to render a badge for the given clause type. */
 export function clauseTypeColor(clauseType: ClauseType): { bg: string; fg: string } {
   return COLORS[clauseType];
 }

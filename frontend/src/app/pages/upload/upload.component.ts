@@ -8,6 +8,11 @@ import { Router } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
 
+/**
+ * Single-file upload page (drag/drop or click). Accepts `.txt` / `.md` /
+ * `.markdown` only — PDF/DOCX are explicitly out of scope. On success,
+ * navigates to the new document's detail view.
+ */
 @Component({
   selector: 'app-upload',
   imports: [

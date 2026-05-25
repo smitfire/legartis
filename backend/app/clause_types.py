@@ -1,7 +1,11 @@
+"""Canonical clause-type machine values and their human-readable labels."""
+
 from enum import StrEnum
 
 
 class ClauseType(StrEnum):
+    """Closed set of clause categories the dashboard recognises."""
+
     LIMITATION_OF_LIABILITY = "limitation_of_liability"
     TERMINATION_FOR_CONVENIENCE = "termination_for_convenience"
     NON_COMPETE = "non_compete"

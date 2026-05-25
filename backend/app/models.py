@@ -22,6 +22,8 @@ class Base(DeclarativeBase):
 
 
 class Document(Base):
+    """An uploaded contract, stored verbatim with its segmented sentences."""
+
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -39,6 +41,8 @@ class Document(Base):
 
 
 class Sentence(Base):
+    """One sentence inside a document; ``position`` is unique per document."""
+
     __tablename__ = "sentences"
     __table_args__ = (UniqueConstraint("document_id", "position", name="uq_sentence_position"),)
 
@@ -63,6 +67,14 @@ _VALID_CLAUSE_TYPES_SQL = ", ".join(f"'{ct.value}'" for ct in ClauseType)
 
 
 class Label(Base):
+    """A clause-type annotation on a sentence.
+
+    A sentence may carry at most one label per ``clause_type`` (enforced by
+    ``uq_label_sentence_clausetype``); the router translates that conflict
+    into HTTP 409. ``source`` distinguishes ``MANUAL`` from future ``AUTO``
+    labels and is the seam where automated classification would plug in.
+    """
+
     __tablename__ = "labels"
     __table_args__ = (
         UniqueConstraint("sentence_id", "clause_type", name="uq_label_sentence_clausetype"),

@@ -11,6 +11,8 @@ router = APIRouter(tags=["labels"])
 
 
 class LabelCreate(BaseModel):
+    """Incoming payload for tagging a sentence with a clause type."""
+
     clause_type: ClauseType
     source: str = "MANUAL"
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
@@ -22,6 +24,13 @@ class LabelCreate(BaseModel):
     response_model=LabelOut,
 )
 async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) -> Label:
+    """Attach a clause-type label to a sentence.
+
+    Returns 404 if the sentence does not exist, 409 if the sentence already
+    carries this clause type (``uq_label_sentence_clausetype`` violation),
+    and 422 for any other constraint failure (CHECK on ``clause_type`` or
+    ``source``, foreign-key issues).
+    """
     sentence = await db.get(Sentence, sentence_id)
     if sentence is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Sentence not found")
@@ -57,6 +66,7 @@ async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) ->
 
 @router.delete("/labels/{label_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_label(label_id: int, db: DbSession) -> Response:
+    """Remove a label by id; 404 if it does not exist, 204 on success."""
     label = await db.get(Label, label_id)
     if label is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Label not found")

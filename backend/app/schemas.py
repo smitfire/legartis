@@ -32,3 +32,23 @@ class DocumentOut(BaseModel):
     title: str
     uploaded_at: datetime
     sentences: list[SentenceOut] = []
+
+
+class DocumentSummary(BaseModel):
+    """Compact view of a document for the dashboard list."""
+
+    id: int
+    title: str
+    uploaded_at: datetime
+    sentence_count: int
+    label_count: int
+    clause_types: list[ClauseType] = []
+
+
+class DocumentGroup(BaseModel):
+    clause_type: ClauseType
+    documents: list[DocumentSummary]
+
+
+class GroupedDocuments(BaseModel):
+    groups: list[DocumentGroup]

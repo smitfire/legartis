@@ -1,13 +1,14 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy import Select, select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.clause_types import ClauseType
 from app.deps import get_db
-from app.models import Document, Sentence
-from app.schemas import DocumentOut
+from app.models import Document, Label, Sentence
+from app.schemas import DocumentGroup, DocumentOut, DocumentSummary, GroupedDocuments
 from app.segmentation import segment
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -20,6 +21,21 @@ def _document_with_sentences_query(document_id: int) -> Select[tuple[Document]]:
         select(Document)
         .where(Document.id == document_id)
         .options(selectinload(Document.sentences).selectinload(Sentence.labels))
+    )
+
+
+def _to_summary(doc: Document) -> DocumentSummary:
+    label_count = sum(len(s.labels) for s in doc.sentences)
+    clause_types = sorted(
+        {ClauseType(label.clause_type) for s in doc.sentences for label in s.labels}
+    )
+    return DocumentSummary(
+        id=doc.id,
+        title=doc.title,
+        uploaded_at=doc.uploaded_at,
+        sentence_count=len(doc.sentences),
+        label_count=label_count,
+        clause_types=clause_types,
     )
 
 
@@ -51,6 +67,63 @@ async def create_document(
 
     result = await db.execute(_document_with_sentences_query(doc.id))
     return result.scalar_one()
+
+
+@router.get("", response_model=None)
+async def list_documents(
+    db: DbSession,
+    q: Annotated[str | None, Query(description="Case-insensitive text in title or content")] = None,
+    type: Annotated[
+        list[ClauseType] | None,
+        Query(alias="type", description="Clause type filter; multi-select is OR'd"),
+    ] = None,
+    group_by: Annotated[Literal["type"] | None, Query()] = None,
+) -> list[DocumentSummary] | GroupedDocuments:
+    stmt = (
+        select(Document)
+        .options(selectinload(Document.sentences).selectinload(Sentence.labels))
+        .order_by(Document.id)
+    )
+
+    if q:
+        needle = q.lower()
+        stmt = stmt.where(
+            or_(
+                func.lower(Document.title).contains(needle),
+                func.lower(Document.content).contains(needle),
+            )
+        )
+
+    if type:
+        type_values = [ct.value for ct in type]
+        stmt = (
+            stmt.join(Sentence, Sentence.document_id == Document.id)
+            .join(Label, Label.sentence_id == Sentence.id)
+            .where(Label.clause_type.in_(type_values))
+            .distinct()
+        )
+
+    docs = list((await db.execute(stmt)).scalars().unique().all())
+
+    if group_by == "type":
+        buckets: dict[str, list[DocumentSummary]] = {}
+        for doc in docs:
+            summary = _to_summary(doc)
+            seen_in_doc: set[str] = set()
+            for sentence in doc.sentences:
+                for label in sentence.labels:
+                    if label.clause_type in seen_in_doc:
+                        continue
+                    seen_in_doc.add(label.clause_type)
+                    buckets.setdefault(label.clause_type, []).append(summary)
+        return GroupedDocuments(
+            groups=[
+                DocumentGroup(clause_type=ClauseType(ct), documents=group_docs)
+                for ct, group_docs in sorted(buckets.items())
+            ]
+        )
+
+    return [_to_summary(doc) for doc in docs]
 
 
 @router.get("/{document_id}", response_model=DocumentOut)

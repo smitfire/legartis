@@ -3,7 +3,12 @@ from collections.abc import AsyncIterator
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import StaticPool
 
 from app.deps import get_db
@@ -12,7 +17,7 @@ from app.models import Base
 
 
 @pytest.fixture
-async def db_session() -> AsyncIterator[AsyncSession]:
+async def db_engine() -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -29,17 +34,25 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
-    async with session_factory() as session:
-        yield session
+    yield engine
 
     await engine.dispose()
 
 
 @pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
+async def db_session(db_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    factory = async_sessionmaker(db_engine, expire_on_commit=False, autoflush=False)
+    async with factory() as session:
+        yield session
+
+
+@pytest.fixture
+async def client(db_engine: AsyncEngine) -> AsyncIterator[AsyncClient]:
+    factory = async_sessionmaker(db_engine, expire_on_commit=False, autoflush=False)
+
     async def override_get_db() -> AsyncIterator[AsyncSession]:
-        yield db_session
+        async with factory() as session:
+            yield session
 
     app.dependency_overrides[get_db] = override_get_db
     transport = ASGITransport(app=app)

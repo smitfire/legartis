@@ -33,12 +33,18 @@ test('dashboard filter and search narrow to the labelled contract', async ({ pag
   // Confirm card visible.
   await expect(page.getByText('sample.txt').first()).toBeVisible();
 
+  // Chips show per-type document counts so users never click a filter that
+  // yields zero results. Confidentiality has at least one match, Non-Compete
+  // has zero — the latter chip is disabled.
+  await expect(page.getByRole('option', { name: /Confidentiality \(\d+\)/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Non-Compete \(0\)/ })).toBeDisabled();
+
   // Filter by Confidentiality chip — only matching docs remain.
-  await page.getByRole('option', { name: 'Confidentiality' }).click();
+  await page.getByRole('option', { name: /Confidentiality/ }).click();
   await expect(page.getByRole('link', { name: /sample\.txt/ }).first()).toBeVisible();
 
   // Clear, then search by keyword.
-  await page.getByRole('option', { name: 'Confidentiality' }).click();
+  await page.getByRole('option', { name: /Confidentiality/ }).click();
   await page.getByRole('searchbox', { name: 'Search documents' }).fill('liability');
   await expect(page.getByRole('link', { name: /sample\.txt/ }).first()).toBeVisible();
 

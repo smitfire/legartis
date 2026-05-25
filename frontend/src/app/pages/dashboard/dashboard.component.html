@@ -44,7 +44,14 @@
     (change)="onTypesChange($event)"
   >
     @for (type of clauseTypes(); track type.value) {
-      <mat-chip-option [value]="type.value">{{ type.label }}</mat-chip-option>
+      <mat-chip-option
+        [value]="type.value"
+        [disabled]="type.count === 0"
+        [matTooltip]="type.count === 0 ? 'No contracts have this label yet' : ''"
+        matTooltipPosition="above"
+      >
+        {{ type.label }} <span class="chip-count">({{ type.count }})</span>
+      </mat-chip-option>
     }
   </mat-chip-listbox>
 </section>

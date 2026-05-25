@@ -14,6 +14,10 @@ export interface ClauseTypeOption {
   label: string;
 }
 
+export interface ClauseTypeCount extends ClauseTypeOption {
+  count: number;
+}
+
 export interface Label {
   id: number;
   sentence_id: number;

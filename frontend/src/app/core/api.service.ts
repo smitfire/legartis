@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import type {
   ClauseType,
+  ClauseTypeCount,
   ClauseTypeOption,
   DocumentDetail,
   DocumentSummary,
@@ -24,6 +25,12 @@ export class ApiService {
 
   listClauseTypes(): Observable<ClauseTypeOption[]> {
     return this.http.get<ClauseTypeOption[]>(`${this.base}/clause-types`);
+  }
+
+  listClauseTypeCounts(q?: string): Observable<ClauseTypeCount[]> {
+    let params = new HttpParams();
+    if (q) params = params.set('q', q);
+    return this.http.get<ClauseTypeCount[]>(`${this.base}/clause-type-counts`, { params });
   }
 
   listDocuments(filters: DashboardFilters = {}): Observable<DocumentSummary[] | GroupedDocuments> {

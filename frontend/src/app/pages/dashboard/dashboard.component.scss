@@ -92,6 +92,12 @@ h1 {
   font-size: 0.9rem;
 }
 
+.chip-count {
+  color: var(--mat-sys-on-surface-variant);
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { Subject, debounceTime } from 'rxjs';
 
@@ -17,7 +18,7 @@ import { ApiService } from '../../core/api.service';
 import { clauseTypeColor } from '../../core/clause-type-color';
 import type {
   ClauseType,
-  ClauseTypeOption,
+  ClauseTypeCount,
   DocumentGroup,
   DocumentSummary,
   GroupedDocuments,
@@ -44,6 +45,7 @@ interface ViewState {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
+    MatTooltipModule,
     RouterLink,
   ],
   templateUrl: './dashboard.component.html',
@@ -52,7 +54,7 @@ interface ViewState {
 export class DashboardComponent {
   private readonly api = inject(ApiService);
 
-  readonly clauseTypes = signal<ClauseTypeOption[]>([]);
+  readonly clauseTypes = signal<ClauseTypeCount[]>([]);
   readonly selectedTypes = signal<Set<ClauseType>>(new Set());
   readonly query = signal('');
   readonly groupByType = signal(false);
@@ -72,11 +74,6 @@ export class DashboardComponent {
   private readonly queryInput$ = new Subject<string>();
 
   constructor() {
-    this.api
-      .listClauseTypes()
-      .pipe(takeUntilDestroyed())
-      .subscribe((opts) => this.clauseTypes.set(opts));
-
     this.queryInput$
       .pipe(debounceTime(200), takeUntilDestroyed())
       .subscribe((value) => {
@@ -117,10 +114,16 @@ export class DashboardComponent {
   }
 
   private refresh(): void {
+    const q = this.query().trim() || undefined;
     this.state.update((s) => ({ ...s, loading: true, error: null }));
+
+    // Chip counts always reflect the search query so users never click a
+    // filter that would yield zero results in the current view.
+    this.api.listClauseTypeCounts(q).subscribe((counts) => this.clauseTypes.set(counts));
+
     this.api
       .listDocuments({
-        q: this.query().trim() || undefined,
+        q,
         types: this.selectedTypes().size > 0 ? Array.from(this.selectedTypes()) : undefined,
         groupBy: this.groupByType() ? 'type' : undefined,
       })

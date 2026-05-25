@@ -10,7 +10,7 @@ Build a small web app that lets a legal team upload contracts (plain text or mar
 4. **Goal-driven execution.** Every task ends with a verification step that proves the goal. Loop until verified.
 
 ## TDD contract
-Every feature and every bug fix goes through the `/red-green` command, which invokes the Pocock `tdd` skill. One failing test → minimum code to pass → refactor only when green. Tests verify **behavior through the public interface** — no asserting on mock call counts, no reading private attributes. Tests must survive a behavior-preserving refactor.
+Every feature and every bug fix goes through the `red-green` skill (Pocock TDD). It auto-fires when the user says "implement X", "add the endpoint", "build the dashboard", "fix this bug", or similar — you don't need to type a slash. Or invoke explicitly with `/red-green`. One failing test → minimum code to pass → refactor only when green. Tests verify **behavior through the public interface** — no asserting on mock call counts, no reading private attributes. Tests must survive a behavior-preserving refactor.
 
 ## Stack conventions
 **Backend** — FastAPI · Pydantic v2 · SQLAlchemy 2.0 async · asyncpg · Alembic · pytest + httpx + pytest-asyncio · Ruff (lint + format) · mypy strict.
@@ -29,7 +29,7 @@ docker compose up -d && curl -sf http://localhost:8000/healthz
 Or just dispatch the `build-validator` subagent. **Never declare done until it returns "ready".**
 
 ## Review gate
-Before any commit that finishes a feature, run `/full-review`. It dispatches in parallel: SOLID, DRY, test-quality, silent-failure-hunter, the built-in `/code-review` 5-Sonnet pipeline, and `/security-review`. Blocking findings must be fixed before commit.
+Before any commit that finishes a feature, run the `full-review` skill. It auto-fires when the user says "ready to ship", "review this", "is this ready", "ready to merge" — no slash needed. Or invoke explicitly with `/full-review`. It dispatches in parallel: SOLID, DRY, test-quality, silent-failure-hunter, built-in `/code-review` (5-Sonnet pipeline), and `/security-review`. Blocking findings must be fixed before commit.
 
 ## Domain anti-patterns
 - A clause is **a single sentence** by case-study definition. Don't merge or split sentences. Preserve original text byte-for-byte.
@@ -46,14 +46,16 @@ Before any commit that finishes a feature, run `/full-review`. It dispatches in 
 /.claude               agents/, commands/, skills/, settings.json
 ```
 
-## Commands you should know
-- `/red-green` — start a TDD slice (Pocock loop).
-- `/full-review` — pre-commit review fan-out.
-- `/code-review` — built-in 5-Sonnet correctness reviewer (called by `/full-review`).
-- `/security-review` — built-in OWASP-style scan on diff.
-- `/check` — static analysis pass.
-- `/verify` — runs the app and confirms a change works end-to-end.
-- `/run` — start the app for manual inspection.
+## How to trigger workflows
+Most workflows auto-fire from natural-language intent (no slash command needed):
+- *"implement X" / "add the endpoint" / "build the dashboard"* → `red-green` (Pocock TDD)
+- *"ready to ship" / "review this" / "is this ready"* → `full-review` (parallel reviewers)
+- *"why is X failing" / "debug this"* → `diagnose` (loop-first debugging)
+- *"plan how to X"* → `grill-with-docs` (domain-language scoping)
+
+A `UserPromptSubmit` hook (`.claude/hooks/phrase-router.sh`) also injects deterministic reminders when these phrases are detected, so even if a skill auto-match misses you still get the workflow pointer.
+
+Slash equivalents (always work): `/red-green`, `/full-review`, `/code-review`, `/security-review`, `/check`, `/verify`, `/run`.
 
 ## Skills loaded for this project
 TDD methodology (`tdd`), debugging (`diagnose`), architecture critique (`improve-codebase-architecture`), domain-language planning (`grill-with-docs`), PRD synthesis (`to-prd`), pre-commit setup (`setup-pre-commit`), git safety (`git-guardrails-claude-code`), Angular v21+ official (`angular-developer`, `angular-new-app`), UI quality (`web-design-guidelines`).

@@ -1,5 +1,6 @@
 ---
-description: Run all reviewers in parallel against the current diff (SOLID, DRY, test-quality, silent failures, built-in correctness, security). Use before declaring a feature done or before merge.
+name: full-review
+description: Run a parallel multi-reviewer pass over the current git diff (SOLID, DRY, test-quality, silent-failure, correctness, security). Use when the user says "review this", "is this ready", "ready to ship", "ready to merge", "ready to commit", "check this diff", "audit this change", or finishes implementing a feature and needs a pre-merge gate.
 allowed-tools: Bash(git:*), Bash(gh:*), Task, Read, Grep, Glob
 ---
 
@@ -18,14 +19,14 @@ If the working tree is dirty, abort and tell the user to commit or stash first �
 
 # Step 2 — Dispatch all reviewers in parallel
 
-In a single message, launch every reviewer below as a `Task` with `subagent_type: general-purpose` (or the specific agent name if registered). Pass each one the `BASE_SHA`, `HEAD_SHA`, and a one-line description of the change.
+In a single message, launch every reviewer below as a `Task` (use `general-purpose` subagent type or the specific agent name if registered). Pass each one the `BASE_SHA`, `HEAD_SHA`, and a one-line description of the change.
 
 1. **solid-reviewer** — SOLID violations in the diff.
 2. **dry-reviewer** — meaningful duplication (rule of three, same reason to change).
 3. **test-quality-reviewer** — Pocock-style: tests verify behavior through public interfaces.
 4. **silent-failure-hunter** (from pr-review-toolkit) — swallowed exceptions, ignored Promises, unhandled rejections.
 5. **Built-in `/code-review`** (5-Sonnet parallel reviewer) — correctness bugs + CLAUDE.md compliance + git history context.
-6. **Built-in `/security-review`** — OWASP-style security scan on the diff.
+6. **Built-in `/security-review`** — OWASP-style scan on the diff.
 
 # Step 3 — Synthesize
 
@@ -54,7 +55,7 @@ Collect every finding. Group by severity:
 
 # Step 4 — Act
 
-- For **blocking** findings: do not declare the work done. Fix them, then re-run `/full-review`.
+- For **blocking** findings: do not declare the work done. Fix them, then re-run the review.
 - For **important** findings: fix unless there's a defensible reason to defer (note it in CLAUDE.md's *Lessons* section).
 - For **suggestions** and **strengths**: include them in the PR description but do not block on them.
 

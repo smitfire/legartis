@@ -1,5 +1,6 @@
 ---
-description: Enter Pocock's TDD red-green-refactor loop for one vertical slice. Use before writing any production code for a new feature or bug fix.
+name: red-green
+description: Run Pocock's TDD red-green-refactor loop on one vertical slice. Use when the user says "implement", "add a feature", "build the endpoint", "let's add", "write the X function", "start a new feature", "fix this bug", or before writing any production code for new behavior.
 allowed-tools: Read, Edit, Write, Bash(pytest:*), Bash(npx ng test:*), Bash(npm test:*), Glob, Grep
 ---
 
@@ -15,7 +16,7 @@ Invoke the `tdd` skill and execute the red-green-refactor loop on exactly **one*
 
 # Workflow
 
-1. **State the behavior** you're about to test in one sentence. Have me confirm before writing code.
+1. **State the behavior** you're about to test in one sentence. Have the user confirm before writing code.
 
 2. **Write ONE failing test** that describes the behavior from the outside. Name it after the behavior, not the function. Run it and confirm it fails for the right reason (not an import error).
 

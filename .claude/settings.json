@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(pytest:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(alembic:*)",
+      "Bash(uvicorn:*)",
+      "Bash(uv:*)",
+      "Bash(pip:*)",
+      "Bash(ng:*)",
+      "Bash(npx ng:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker:*)",
+      "Bash(curl -sf http://localhost:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git merge-base:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_FILE_PATH\"; case \"$f\" in *.py) ruff format \"$f\" >/dev/null 2>&1 ;; *.ts|*.tsx|*.js|*.html|*.css|*.scss|*.json|*.md) command -v prettier >/dev/null 2>&1 && prettier --write \"$f\" >/dev/null 2>&1 || true ;; esac; exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Reminder: before declaring done, dispatch build-validator or run: pytest -x && (cd frontend && npx ng test --watch=false && npx ng build)'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import clause_types
+from app.routers import clause_types, documents
 
 
 def create_app() -> FastAPI:
@@ -15,6 +15,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(clause_types.router)
+    app.include_router(documents.router)
 
     @app.get("/healthz")
     async def healthz() -> dict[str, bool]:

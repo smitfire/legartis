@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
+import { MatChipsModule, type MatChipListboxChange } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -67,6 +67,8 @@ export class DashboardComponent {
     () => this.query() !== '' || this.selectedTypes().size > 0 || this.groupByType(),
   );
 
+  readonly selectedTypesValue = computed(() => Array.from(this.selectedTypes()));
+
   private readonly queryInput$ = new Subject<string>();
 
   constructor() {
@@ -89,14 +91,8 @@ export class DashboardComponent {
     this.queryInput$.next(value);
   }
 
-  toggleType(type: ClauseType): void {
-    const next = new Set(this.selectedTypes());
-    if (next.has(type)) {
-      next.delete(type);
-    } else {
-      next.add(type);
-    }
-    this.selectedTypes.set(next);
+  onTypesChange(event: MatChipListboxChange): void {
+    this.selectedTypes.set(new Set(event.value as ClauseType[]));
     this.refresh();
   }
 

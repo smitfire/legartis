@@ -37,14 +37,14 @@
 </section>
 
 <section class="type-filter" aria-label="Clause type filter">
-  <mat-chip-listbox multiple aria-label="Filter by clause type">
+  <mat-chip-listbox
+    multiple
+    aria-label="Filter by clause type"
+    [value]="selectedTypesValue()"
+    (change)="onTypesChange($event)"
+  >
     @for (type of clauseTypes(); track type.value) {
-      <mat-chip-option
-        [selected]="selectedTypes().has(type.value)"
-        (selectionChange)="toggleType(type.value)"
-      >
-        {{ type.label }}
-      </mat-chip-option>
+      <mat-chip-option [value]="type.value">{{ type.label }}</mat-chip-option>
     }
   </mat-chip-listbox>
 </section>

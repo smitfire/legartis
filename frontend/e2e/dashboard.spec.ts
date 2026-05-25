@@ -2,6 +2,14 @@ import { expect, test } from '@playwright/test';
 import path from 'node:path';
 
 test('dashboard filter and search narrow to the labelled contract', async ({ page }) => {
+  // Production-quality guard: any JS error or failed request fails the test.
+  // A render loop on the chip filter previously fired hundreds of requests
+  // before Chrome returned ERR_INSUFFICIENT_RESOURCES — this catches it.
+  const pageErrors: Error[] = [];
+  const failedRequests: string[] = [];
+  page.on('pageerror', (err) => pageErrors.push(err));
+  page.on('requestfailed', (req) => failedRequests.push(`${req.method()} ${req.url()}`));
+
   // Upload + label a contract so the dashboard has something to filter on.
   await page.goto('/upload');
   await page.getByText('Choose file').click();
@@ -37,4 +45,11 @@ test('dashboard filter and search narrow to the labelled contract', async ({ pag
   // Search for non-existent term → empty state.
   await page.getByRole('searchbox', { name: 'Search documents' }).fill('zzzzzz_no_such_text');
   await expect(page.getByText('No contracts yet')).toBeVisible();
+
+  // Give Angular a moment to settle, then assert no JS errors or failed requests.
+  await page.waitForTimeout(500);
+  expect(pageErrors, `Unhandled JS errors: ${pageErrors.map((e) => e.message).join('; ')}`).toEqual(
+    [],
+  );
+  expect(failedRequests, `Failed requests: ${failedRequests.join('; ')}`).toEqual([]);
 });

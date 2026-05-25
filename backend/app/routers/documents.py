@@ -1,19 +1,16 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.clause_types import ClauseType
-from app.deps import get_db
+from app.deps import DbSession
 from app.models import Document, Label, Sentence
 from app.schemas import DocumentGroup, DocumentOut, DocumentSummary, GroupedDocuments
 from app.segmentation import segment
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 def _document_with_sentences_query(document_id: int) -> Select[tuple[Document]]:

@@ -1,18 +1,13 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clause_types import ClauseType
-from app.deps import get_db
+from app.deps import DbSession
 from app.models import Label, Sentence
 from app.schemas import LabelOut
 
 router = APIRouter(tags=["labels"])
-
-DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 class LabelCreate(BaseModel):

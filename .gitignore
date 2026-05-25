@@ -58,3 +58,6 @@ docker-compose.override.yml
 # Backups
 *.bak
 *.backup-*
+
+# Local SQLite dev database (used when running uvicorn natively)
+/backend/dev.db

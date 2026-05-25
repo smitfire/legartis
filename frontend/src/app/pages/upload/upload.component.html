@@ -1,0 +1,49 @@
+<header class="page-header">
+  <h1>Upload a contract</h1>
+  <p class="lede">
+    Plain text or markdown files only. Each sentence becomes a labelable unit. Upload, then click
+    any sentence on the next page to add clause-type labels.
+  </p>
+</header>
+
+<div
+  class="dropzone"
+  [class.dragover]="dragOver()"
+  [class.has-file]="!!file()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  @if (!file()) {
+    <mat-icon class="cloud">cloud_upload</mat-icon>
+    <p class="primary-text">Drag & drop a contract here</p>
+    <p class="secondary-text">or</p>
+    <label class="picker-btn" mat-stroked-button>
+      <span><mat-icon>folder_open</mat-icon> Choose file</span>
+      <input type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" (change)="onFilePicked($event)" hidden />
+    </label>
+    <p class="hint">Supported: .txt · .md</p>
+  } @else {
+    <mat-icon class="cloud">description</mat-icon>
+    <p class="primary-text">{{ file()!.name }}</p>
+    <p class="secondary-text">{{ (file()!.size / 1024).toFixed(1) }} kB</p>
+
+    @if (uploading()) {
+      <div class="uploading">
+        <mat-progress-spinner mode="indeterminate" diameter="32" />
+        <span>Segmenting sentences…</span>
+      </div>
+    } @else {
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="clearFile()">Cancel</button>
+        <button mat-flat-button color="primary" type="button" (click)="upload()">
+          <mat-icon>upload</mat-icon> Upload
+        </button>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+  }
+</div>

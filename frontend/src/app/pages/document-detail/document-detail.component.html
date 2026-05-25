@@ -1,0 +1,89 @@
+@if (loading()) {
+  <div class="centered">
+    <mat-progress-spinner mode="indeterminate" diameter="36" />
+  </div>
+} @else if (error()) {
+  <div class="centered error">
+    <p>{{ error() }}</p>
+    <a mat-button routerLink="/">
+      <mat-icon>arrow_back</mat-icon> Back to dashboard
+    </a>
+  </div>
+} @else if (document(); as doc) {
+  <header class="doc-header">
+    <a mat-button routerLink="/" class="back-link">
+      <mat-icon>arrow_back</mat-icon> All contracts
+    </a>
+    <h1>{{ doc.title }}</h1>
+    <p class="meta">
+      Uploaded {{ doc.uploaded_at | date: 'medium' }} ·
+      {{ doc.sentences.length }} sentence{{ doc.sentences.length === 1 ? '' : 's' }}
+    </p>
+    <p class="hint">
+      Click <strong>Add label</strong> on any sentence to tag it. Labels persist immediately.
+    </p>
+  </header>
+
+  <ol class="sentences">
+    @for (sentence of doc.sentences; track sentence.id) {
+      <li class="sentence">
+        <span class="position" aria-hidden="true">{{ sentence.position + 1 }}</span>
+        <div class="body">
+          <p class="text">{{ sentence.text }}</p>
+          <div class="label-row">
+            @for (label of sentence.labels; track label.id) {
+              <span
+                class="chip"
+                [style.background]="colorFor(label.clause_type).bg"
+                [style.color]="colorFor(label.clause_type).fg"
+              >
+                {{ labelFor(label.clause_type) }}
+                <button
+                  type="button"
+                  class="chip-remove"
+                  (click)="removeLabel(label.id)"
+                  [attr.aria-label]="'Remove ' + labelFor(label.clause_type) + ' label'"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </span>
+            }
+
+            @if (availableTypesFor(sentence.id).length > 0) {
+              <button
+                mat-stroked-button
+                type="button"
+                [matMenuTriggerFor]="addMenu"
+                [disabled]="pendingSentence() === sentence.id"
+                class="add-label-btn"
+              >
+                @if (pendingSentence() === sentence.id) {
+                  <mat-progress-spinner mode="indeterminate" diameter="16" />
+                } @else {
+                  <mat-icon>add</mat-icon>
+                }
+                Add label
+              </button>
+              <mat-menu #addMenu="matMenu">
+                @for (type of availableTypesFor(sentence.id); track type.value) {
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="addLabel(sentence.id, type.value)"
+                  >
+                    <span
+                      class="swatch"
+                      [style.background]="colorFor(type.value).bg"
+                      aria-hidden="true"
+                    ></span>
+                    {{ type.label }}
+                  </button>
+                }
+              </mat-menu>
+            }
+          </div>
+        </div>
+      </li>
+    }
+  </ol>
+}

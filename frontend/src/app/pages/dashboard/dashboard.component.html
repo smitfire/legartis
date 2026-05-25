@@ -1,0 +1,127 @@
+<header class="page-header">
+  <div>
+    <h1>Contracts</h1>
+    <p class="lede">
+      Track which clauses appear in each contract. Upload, label, then search and group across your
+      library.
+    </p>
+  </div>
+  <a mat-flat-button color="primary" routerLink="/upload">
+    <mat-icon>upload_file</mat-icon> Upload contract
+  </a>
+</header>
+
+<section class="filters" aria-label="Filter contracts">
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Search title or content</mat-label>
+    <mat-icon matIconPrefix>search</mat-icon>
+    <input
+      matInput
+      type="search"
+      [value]="query()"
+      (input)="onQueryInput($any($event.target).value)"
+      placeholder="e.g. liability, termination"
+      aria-label="Search documents"
+    />
+  </mat-form-field>
+
+  <mat-slide-toggle [checked]="groupByType()" (change)="toggleGroupByType($event.checked)">
+    Group by clause type
+  </mat-slide-toggle>
+
+  @if (hasActiveFilters()) {
+    <button mat-button type="button" (click)="clearFilters()">
+      <mat-icon>filter_alt_off</mat-icon> Clear
+    </button>
+  }
+</section>
+
+<section class="type-filter" aria-label="Clause type filter">
+  <mat-chip-listbox multiple aria-label="Filter by clause type">
+    @for (type of clauseTypes(); track type.value) {
+      <mat-chip-option
+        [selected]="selectedTypes().has(type.value)"
+        (selectionChange)="toggleType(type.value)"
+      >
+        {{ type.label }}
+      </mat-chip-option>
+    }
+  </mat-chip-listbox>
+</section>
+
+@if (state().loading) {
+  <div class="centered">
+    <mat-progress-spinner mode="indeterminate" diameter="32" />
+  </div>
+} @else if (state().error) {
+  <div class="centered error">{{ state().error }}</div>
+} @else if (state().groups) {
+  @if (state().groups!.length === 0) {
+    <p class="empty">No labelled clauses match the current filters yet.</p>
+  } @else {
+    @for (group of state().groups; track group.clause_type) {
+      <section class="group">
+        <h2 class="group-title">
+          <span
+            class="chip"
+            [style.background]="colorFor(group.clause_type).bg"
+            [style.color]="colorFor(group.clause_type).fg"
+            >{{ labelFor(group.clause_type) }}</span
+          >
+          <span class="group-count">{{ group.documents.length }}</span>
+        </h2>
+        <div class="grid">
+          @for (doc of group.documents; track doc.id) {
+            <ng-container *ngTemplateOutlet="card; context: { $implicit: doc }" />
+          }
+        </div>
+      </section>
+    }
+  }
+} @else if (state().flat.length === 0) {
+  <div class="empty-state">
+    <mat-icon class="big-icon">description</mat-icon>
+    <h2>No contracts yet</h2>
+    <p>Upload a plain-text or markdown contract to start labelling clauses.</p>
+    <a mat-flat-button color="primary" routerLink="/upload">
+      <mat-icon>upload_file</mat-icon> Upload your first contract
+    </a>
+  </div>
+} @else {
+  <div class="grid">
+    @for (doc of state().flat; track doc.id) {
+      <ng-container *ngTemplateOutlet="card; context: { $implicit: doc }" />
+    }
+  </div>
+}
+
+<ng-template #card let-doc>
+  <a class="card-link" [routerLink]="['/documents', doc.id]">
+    <mat-card appearance="outlined" class="doc-card">
+      <mat-card-header>
+        <mat-card-title class="doc-title">{{ doc.title }}</mat-card-title>
+        <mat-card-subtitle>
+          {{ doc.uploaded_at | date: 'mediumDate' }} ·
+          {{ doc.sentence_count }} sentence{{ doc.sentence_count === 1 ? '' : 's' }} ·
+          {{ doc.label_count }} label{{ doc.label_count === 1 ? '' : 's' }}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (doc.clause_types.length === 0) {
+          <p class="unlabeled">No labels yet</p>
+        } @else {
+          <div class="chips">
+            @for (ct of doc.clause_types; track ct) {
+              <span
+                class="chip"
+                [style.background]="colorFor(ct).bg"
+                [style.color]="colorFor(ct).fg"
+                >{{ labelFor(ct) }}</span
+              >
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  </a>
+</ng-template>

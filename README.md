@@ -119,7 +119,38 @@ The first naïve conftest shared a single `AsyncSession` across all requests in 
 - **Background segmentation.** Sub-second for small contracts, so synchronous in the upload request. A queued job + status polling becomes worth it once contracts get large or pre-processing (OCR, layout) is involved.
 - **Audit log / soft-delete on labels.** A graded extension for any real legal-tech product.
 - **PDF / DOCX upload.** The case study scopes input to plain text and markdown.
-- **Automatic labeling.** This is the pair-programming session — the `source` / `confidence` columns and the pure `segment()` function are the seam it will plug into.
+- **Automatic labeling.** This is the pair-programming session — the `source` / `confidence` columns and the pure `segment()` function are the seam it will plug into. Full design in [`docs/ai-features.md`](docs/ai-features.md).
+
+## Bonus — AI architecture (proposed extensions)
+
+The schema seam (`labels.source` ENUM + `labels.confidence`) means high-ROI AI features land without breaking changes. Three are designed but not implemented:
+
+```mermaid
+graph LR
+  S["segment() — pure fn<br/>list[str]"]
+  S --> AL["1. Auto-labelling<br/>LLM emits LabelProposal[]<br/>validator gates sentence_id + enum<br/>INSERT ON CONFLICT DO NOTHING"]
+  S --> SIM["2. Semantic clause similarity<br/>pgvector embeddings on sentences<br/>'find clauses like this one'<br/>sub-50 ms · no LLM in request path"]
+  S --> UT["3. Upload insight<br/>set diff: missing standard clauses<br/>one LLM narration call"]
+```
+
+**The load-bearing pattern.** The LLM emits a strict, typed JSON object (a `LabelProposal`) — never SQL, never an off-enum clause type, never a sentence id that doesn't exist in the document. A validator rejects malformed proposals and retries with the error in context up to twice before falling back to the user. This keeps the LLM out of the security boundary: it has no credentials, no SQL surface, and no path to write anything the schema doesn't already allow.
+
+**A chat-style natural-language Q&A interface was considered and rejected.** Legal workflow is comparison and scanning, not conversation. The keyboard-driven dashboard with filter chips + counts is already faster than chat would be for "show me every confidentiality clause." Semantic clause similarity (feature 2) gives the same "find me clauses like this one" superpower without putting an LLM in the request path.
+
+Full design — typed-contract spec, validator gates, honest eval framing (per-class precision + calibration, **not** F1 against a sparse hand-labelled set), and what scales at 10×/100×/1000× contracts — in [`docs/ai-features.md`](docs/ai-features.md).
+
+## Documentation map
+
+The full design conversation is split across four `docs/` files so the README stays tight:
+
+| File | What's in it |
+|---|---|
+| [`docs/api.md`](docs/api.md) | Every endpoint with examples, error codes, and the OR/AND semantics of the filter params |
+| [`docs/architecture.md`](docs/architecture.md) | System diagram, request flows (Mermaid sequence), ER diagram, choice-vs-alternative table, test strategy |
+| [`docs/features.md`](docs/features.md) | User-facing walkthrough of the three pages, keyboard/a11y notes, behaviour highlights |
+| [`docs/ai-features.md`](docs/ai-features.md) | Auto-labelling design, clause-aware chat, upload triage, scaling table, phased rollout |
+
+Interactive Swagger UI is at <http://localhost:8000/docs> when the stack is running.
 
 ## Repository layout
 

@@ -54,17 +54,13 @@ async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) ->
     except IntegrityError as exc:
         await db.rollback()
         cause = str(getattr(exc, "orig", exc)).lower()
-        if "uq_label_sentence_clausetype" in cause or "unique" in cause:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                detail="Sentence is already labelled with this clause type.",
-            ) from exc
-        if "foreign key" in cause or "fk_labels_clause_type_id" in cause:
+        if "unique" in cause:
+            detail = "Sentence is already labelled with this clause type."
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail) from exc
+        if "foreign key" in cause:
             # Clause type was deleted between the lookup above and the commit.
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                detail="Clause type was removed before this label could be saved.",
-            ) from exc
+            detail = "Clause type was removed before this label could be saved."
+            raise HTTPException(status.HTTP_409_CONFLICT, detail=detail) from exc
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Label violates a database constraint: {cause}",

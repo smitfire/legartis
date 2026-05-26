@@ -4,19 +4,12 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
-def _extract_value(v: Any) -> Any:
-    """Pydantic ``before`` validator that pulls ``.value`` off an ORM ClauseType.
-
-    Lets us keep the wire field name ``clause_type: str`` while the SQLAlchemy
-    Label exposes ``clause_type`` as a joined relationship returning a
-    ``ClauseType`` row. Pass-through for plain strings so the same DTO works in
-    request shapes and other code paths.
-    """
-    return getattr(v, "value", v)
-
-
 class LabelOut(BaseModel):
-    """API view of a single clause-type annotation."""
+    """API view of a single clause-type annotation.
+
+    The ``clause_type`` field is serialised as the machine ``value`` string,
+    whether the source is a plain string or a joined ``ClauseType`` ORM row.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,7 +23,7 @@ class LabelOut(BaseModel):
     @field_validator("clause_type", mode="before")
     @classmethod
     def _flatten_clause_type(cls, v: Any) -> Any:
-        return _extract_value(v)
+        return getattr(v, "value", v)
 
 
 class SentenceOut(BaseModel):

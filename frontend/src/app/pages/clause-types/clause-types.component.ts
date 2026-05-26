@@ -19,6 +19,11 @@ interface ViewState {
   error: string | null;
 }
 
+interface EditingState {
+  id: number;
+  label: string;
+}
+
 @Component({
   selector: 'app-clause-types',
   imports: [
@@ -40,11 +45,12 @@ export class ClauseTypesComponent {
 
   readonly state = signal<ViewState>({ loading: true, items: [], error: null });
   readonly newLabel = signal('');
+  readonly creating = signal(false);
   readonly pendingId = signal<number | null>(null);
-  readonly editingId = signal<number | null>(null);
-  readonly editingLabel = signal('');
+  readonly editing = signal<EditingState | null>(null);
 
   readonly canSubmit = computed(() => this.newLabel().trim().length > 0);
+  readonly editingId = computed(() => this.editing()?.id ?? null);
 
   constructor() {
     this.refresh();
@@ -55,24 +61,26 @@ export class ClauseTypesComponent {
   }
 
   startEditing(option: ClauseTypeOption): void {
-    this.editingId.set(option.id);
-    this.editingLabel.set(option.label);
+    this.editing.set({ id: option.id, label: option.label });
   }
 
   cancelEditing(): void {
-    this.editingId.set(null);
-    this.editingLabel.set('');
+    this.editing.set(null);
+  }
+
+  updateEditingLabel(label: string): void {
+    this.editing.update((current) => (current ? { ...current, label } : current));
   }
 
   saveEdit(id: number): void {
-    const label = this.editingLabel().trim();
+    const editing = this.editing();
+    const label = editing?.label.trim() ?? '';
     if (label.length === 0) return;
     this.pendingId.set(id);
     this.api.updateClauseType(id, label).subscribe({
       next: () => {
         this.pendingId.set(null);
-        this.editingId.set(null);
-        this.editingLabel.set('');
+        this.editing.set(null);
         this.refresh();
       },
       error: (err) => this.handleError(err, 'Failed to update clause type'),
@@ -82,10 +90,10 @@ export class ClauseTypesComponent {
   create(): void {
     const label = this.newLabel().trim();
     if (label.length === 0) return;
-    this.pendingId.set(-1);
+    this.creating.set(true);
     this.api.createClauseType(label).subscribe({
       next: () => {
-        this.pendingId.set(null);
+        this.creating.set(false);
         this.newLabel.set('');
         this.refresh();
       },
@@ -108,8 +116,7 @@ export class ClauseTypesComponent {
   private refresh(): void {
     this.state.update((s) => ({ ...s, loading: true, error: null }));
     this.api.listClauseTypes().subscribe({
-      next: (items) =>
-        this.state.set({ loading: false, items: items as ClauseTypeOption[], error: null }),
+      next: (items) => this.state.set({ loading: false, items, error: null }),
       error: (err) =>
         this.state.set({
           loading: false,
@@ -120,6 +127,7 @@ export class ClauseTypesComponent {
   }
 
   private handleError(err: unknown, fallback: string): void {
+    this.creating.set(false);
     this.pendingId.set(null);
     // HttpErrorResponse buries FastAPI's actionable `detail` field under
     // `err.error`; the top-level `message` is the framework's generic

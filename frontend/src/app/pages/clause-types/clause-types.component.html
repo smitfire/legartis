@@ -30,7 +30,7 @@
         mat-flat-button
         color="primary"
         type="submit"
-        [disabled]="!canSubmit() || pendingId() === -1"
+        [disabled]="!canSubmit() || creating()"
       >
         <mat-icon>add</mat-icon> Add clause type
       </button>
@@ -59,8 +59,8 @@
             @if (editingId() === option.id) {
               <input
                 class="edit-input"
-                [ngModel]="editingLabel()"
-                (ngModelChange)="editingLabel.set($event)"
+                [ngModel]="editing()?.label ?? ''"
+                (ngModelChange)="updateEditingLabel($event)"
                 name="editLabel"
                 maxlength="200"
                 aria-label="Edit clause type label"

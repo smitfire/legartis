@@ -1,3 +1,4 @@
+import unicodedata
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -15,16 +16,27 @@ _MAX_COLLISION_SUFFIX = 50
 
 
 def _validate_label(v: str) -> str:
-    """Reject labels that are whitespace-only or slugify to an empty string.
+    """Reject labels that would corrupt the dashboard render.
 
     ``Field(min_length=1)`` accepts ``"   "`` because it counts whitespace;
     that label slugifies to ``""`` and we fall back to ``"clause_type"``,
     polluting the taxonomy with effectively-blank rows. Strip first, then
     enforce that the slug has at least one alphanumeric.
+
+    Also reject invisible / formatting characters (zero-width spaces,
+    RTL/LRO directional overrides, BOM, control chars). Angular's
+    interpolation is XSS-safe, but these chars hide content or flip
+    rendering direction in chips and tables.
     """
     stripped = v.strip()
     if not stripped:
         raise ValueError("label cannot be empty or whitespace-only")
+    for ch in stripped:
+        cat = unicodedata.category(ch)
+        # Cc = control, Cf = format (incl. ZWSP, RLO, BOM), Cs = surrogate,
+        # Co = private use, Cn = unassigned, Zl/Zp = line/paragraph separators.
+        if cat.startswith("C") or cat in ("Zl", "Zp"):
+            raise ValueError("label contains a disallowed control or formatting character")
     if not slugify(stripped):
         raise ValueError("label must contain at least one alphanumeric character")
     return stripped

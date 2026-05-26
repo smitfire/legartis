@@ -111,6 +111,15 @@ async def test_create_clause_type_rejects_punctuation_only_label(client: AsyncCl
     assert response.status_code == 422
 
 
+async def test_create_clause_type_rejects_zero_width_and_directional_overrides(
+    client: AsyncClient,
+) -> None:
+    # U+200B zero-width space hides text; U+202E RLO flips render direction.
+    for label in ("Force​Majeure", "Hidden‮Text"):
+        response = await client.post("/clause-types", json={"label": label})
+        assert response.status_code == 422, f"expected 422 for {label!r}"
+
+
 async def test_create_clause_type_rejects_extra_fields(client: AsyncClient) -> None:
     response = await client.post(
         "/clause-types",

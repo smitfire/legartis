@@ -1,0 +1,95 @@
+.manage {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  max-width: 880px;
+  margin: 0 auto;
+
+  &__header {
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.75rem;
+    }
+
+    p {
+      margin: 0;
+      color: var(--mat-sys-on-surface-variant, #5e6166);
+    }
+  }
+
+  &__create {
+    padding: 1rem 1.25rem;
+  }
+
+  &__form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  &__form-field {
+    flex: 1 1 260px;
+    min-width: 260px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--mat-sys-outline-variant, #d9d9df);
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--mat-sys-outline-variant, #d9d9df);
+  }
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.label {
+  font-weight: 500;
+}
+
+.value {
+  color: var(--mat-sys-on-surface-variant, #5e6166);
+  font-family: var(--mat-sys-typescale-body-small-font, monospace);
+  font-size: 0.85rem;
+}
+
+.edit-input {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--mat-sys-outline, #b0b1b5);
+  border-radius: 6px;
+  background: var(--mat-sys-surface, #fff);
+  color: inherit;
+  min-width: 0;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error {
+  color: var(--mat-sys-error, #b3261e);
+}
+
+.empty {
+  color: var(--mat-sys-on-surface-variant, #5e6166);
+  text-align: center;
+  padding: 1rem;
+}

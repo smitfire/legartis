@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event
+from sqlalchemy import event, insert
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,7 +13,17 @@ from sqlalchemy.pool import StaticPool
 
 from app.deps import get_db
 from app.main import app
-from app.models import Base
+from app.models import Base, ClauseType
+
+SEED_CLAUSE_TYPES: list[tuple[str, str]] = [
+    ("limitation_of_liability", "Limitation of Liability"),
+    ("termination_for_convenience", "Termination for Convenience"),
+    ("non_compete", "Non-Compete"),
+    ("confidentiality", "Confidentiality"),
+    ("governing_law", "Governing Law"),
+    ("indemnification", "Indemnification"),
+    ("force_majeure", "Force Majeure"),
+]
 
 
 @pytest.fixture
@@ -33,6 +43,10 @@ async def db_engine() -> AsyncIterator[AsyncEngine]:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            insert(ClauseType),
+            [{"value": value, "label": label} for value, label in SEED_CLAUSE_TYPES],
+        )
 
     yield engine
 

@@ -3,13 +3,16 @@ from typing import Any
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import ClauseType
+
 
 async def _upload(client: AsyncClient, body: bytes = b"First. Second. Third.") -> dict[str, Any]:
     response = await client.post(
         "/documents",
         files={"file": ("contract.txt", body, "text/plain")},
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 async def test_creates_label_on_sentence_and_returns_201(client: AsyncClient) -> None:
@@ -73,6 +76,22 @@ async def test_label_with_invalid_clause_type_returns_422(client: AsyncClient) -
     )
 
     assert response.status_code == 422
+
+
+async def test_label_with_dynamic_clause_type_returns_201(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    db_session.add(ClauseType(value="bespoke_warranty", label="Bespoke Warranty"))
+    await db_session.commit()
+    doc = await _upload(client, b"Warranty bespoke language here.")
+
+    response = await client.post(
+        f"/sentences/{doc['sentences'][0]['id']}/labels",
+        json={"clause_type": "bespoke_warranty"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["clause_type"] == "bespoke_warranty"
 
 
 async def test_delete_label_returns_204_and_removes_it(client: AsyncClient) -> None:

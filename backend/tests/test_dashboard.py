@@ -8,7 +8,8 @@ async def _upload(client: AsyncClient, name: str, body: str) -> dict[str, Any]:
         "/documents",
         files={"file": (name, body.encode("utf-8"), "text/plain")},
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 async def _label(client: AsyncClient, sentence_id: int, clause_type: str) -> None:

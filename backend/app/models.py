@@ -14,11 +14,28 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from app.clause_types import ClauseType
-
 
 class Base(DeclarativeBase):
     pass
+
+
+class ClauseType(Base):
+    """A clause category that users (and, later, the AI) can apply to sentences.
+
+    Dynamic row in the ``clause_types`` table — replaces the old closed
+    ``ClauseType`` StrEnum. ``value`` is the immutable machine identifier
+    (e.g. ``governing_law``) referenced over the wire; ``label`` is the
+    human-readable display name and is the only field that can be edited.
+    """
+
+    __tablename__ = "clause_types"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
 
 class Document(Base):
@@ -60,25 +77,19 @@ class Sentence(Base):
     )
 
 
-# Static list of valid clause-type machine values. Generated from the StrEnum so it
-# stays in sync — values are constants (not user input), so f-string interpolation
-# into the CHECK clause is safe.
-_VALID_CLAUSE_TYPES_SQL = ", ".join(f"'{ct.value}'" for ct in ClauseType)
-
-
 class Label(Base):
     """A clause-type annotation on a sentence.
 
-    A sentence may carry at most one label per ``clause_type`` (enforced by
-    ``uq_label_sentence_clausetype``); the router translates that conflict
-    into HTTP 409. ``source`` distinguishes ``MANUAL`` from future ``AUTO``
-    labels and is the seam where automated classification would plug in.
+    A sentence may carry at most one label per ``clause_type_id`` (enforced
+    by ``uq_label_sentence_clausetype``); the router translates that
+    conflict into HTTP 409. ``source`` distinguishes ``MANUAL`` from
+    future ``AUTO`` labels and is the seam where automated classification
+    would plug in.
     """
 
     __tablename__ = "labels"
     __table_args__ = (
-        UniqueConstraint("sentence_id", "clause_type", name="uq_label_sentence_clausetype"),
-        CheckConstraint(f"clause_type IN ({_VALID_CLAUSE_TYPES_SQL})", name="ck_label_clause_type"),
+        UniqueConstraint("sentence_id", "clause_type_id", name="uq_label_sentence_clausetype"),
         CheckConstraint("source IN ('MANUAL', 'AUTO')", name="ck_label_source"),
     )
 
@@ -86,7 +97,9 @@ class Label(Base):
     sentence_id: Mapped[int] = mapped_column(
         ForeignKey("sentences.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    clause_type: Mapped[str] = mapped_column(Text, nullable=False)
+    clause_type_id: Mapped[int] = mapped_column(
+        ForeignKey("clause_types.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     source: Mapped[str] = mapped_column(Text, nullable=False, server_default="MANUAL")
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -94,3 +107,4 @@ class Label(Base):
     )
 
     sentence: Mapped[Sentence] = relationship(back_populates="labels")
+    clause_type: Mapped[ClauseType] = relationship(lazy="joined")

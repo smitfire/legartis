@@ -4,9 +4,8 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import selectinload
 
-from app.clause_types import ClauseType
 from app.deps import DbSession
-from app.models import Document, Label, Sentence
+from app.models import ClauseType, Document, Label, Sentence
 from app.schemas import DocumentGroup, DocumentOut, DocumentSummary, GroupedDocuments
 from app.segmentation import segment
 
@@ -24,9 +23,7 @@ def _document_with_sentences_query(document_id: int) -> Select[tuple[Document]]:
 def _to_summary(doc: Document) -> DocumentSummary:
     """Collapse a loaded ``Document`` into the compact dashboard summary."""
     label_count = sum(len(s.labels) for s in doc.sentences)
-    clause_types = sorted(
-        {ClauseType(label.clause_type) for s in doc.sentences for label in s.labels}
-    )
+    clause_types = sorted({label.clause_type.value for s in doc.sentences for label in s.labels})
     return DocumentSummary(
         id=doc.id,
         title=doc.title,
@@ -77,7 +74,7 @@ async def list_documents(
     db: DbSession,
     q: Annotated[str | None, Query(description="Case-insensitive text in title or content")] = None,
     type: Annotated[
-        list[ClauseType] | None,
+        list[str] | None,
         Query(alias="type", description="Clause type filter; multi-select is OR'd"),
     ] = None,
     group_by: Annotated[Literal["type"] | None, Query()] = None,
@@ -106,11 +103,11 @@ async def list_documents(
         )
 
     if type:
-        type_values = [ct.value for ct in type]
         stmt = (
             stmt.join(Sentence, Sentence.document_id == Document.id)
             .join(Label, Label.sentence_id == Sentence.id)
-            .where(Label.clause_type.in_(type_values))
+            .join(ClauseType, ClauseType.id == Label.clause_type_id)
+            .where(ClauseType.value.in_(type))
             .distinct()
         )
 
@@ -123,14 +120,15 @@ async def list_documents(
             seen_in_doc: set[str] = set()
             for sentence in doc.sentences:
                 for label in sentence.labels:
-                    if label.clause_type in seen_in_doc:
+                    value = label.clause_type.value
+                    if value in seen_in_doc:
                         continue
-                    seen_in_doc.add(label.clause_type)
-                    buckets.setdefault(label.clause_type, []).append(summary)
+                    seen_in_doc.add(value)
+                    buckets.setdefault(value, []).append(summary)
         return GroupedDocuments(
             groups=[
-                DocumentGroup(clause_type=ClauseType(ct), documents=group_docs)
-                for ct, group_docs in sorted(buckets.items())
+                DocumentGroup(clause_type=value, documents=group_docs)
+                for value, group_docs in sorted(buckets.items())
             ]
         )
 

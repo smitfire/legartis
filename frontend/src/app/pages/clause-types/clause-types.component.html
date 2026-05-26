@@ -1,0 +1,114 @@
+<section class="manage">
+  <header class="manage__header">
+    <h1>Clause Types</h1>
+    <p>
+      Curate the clause taxonomy your reviewers tag sentences with. Deleting a clause type
+      removes every label that referenced it.
+    </p>
+  </header>
+
+  <mat-card class="manage__create">
+    <form
+      data-test="new-clause-type-form"
+      class="manage__form"
+      (submit)="$event.preventDefault(); create()"
+    >
+      <mat-form-field appearance="outline" class="manage__form-field">
+        <mat-label>New clause type</mat-label>
+        <input
+          matInput
+          data-test="new-clause-type-label"
+          [ngModel]="newLabel()"
+          (ngModelChange)="newLabel.set($event)"
+          name="newLabel"
+          placeholder="e.g. Service Level Agreement"
+          maxlength="200"
+          autocomplete="off"
+        />
+      </mat-form-field>
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="!canSubmit() || pendingId() === -1"
+      >
+        <mat-icon>add</mat-icon> Add clause type
+      </button>
+    </form>
+  </mat-card>
+
+  @if (state(); as s) {
+    @if (s.loading && s.items.length === 0) {
+      <div class="centered">
+        <mat-progress-spinner mode="indeterminate" diameter="36" />
+      </div>
+    } @else if (s.error) {
+      <div class="centered error">{{ s.error }}</div>
+    } @else if (s.items.length === 0) {
+      <p class="empty">No clause types yet. Add the first one above.</p>
+    } @else {
+      <ul class="manage__list" role="list">
+        @for (option of s.items; track option.id) {
+          <li class="manage__row">
+            <span
+              class="swatch"
+              [style.background]="colorFor(option.value).bg"
+              aria-hidden="true"
+            ></span>
+
+            @if (editingId() === option.id) {
+              <input
+                class="edit-input"
+                [ngModel]="editingLabel()"
+                (ngModelChange)="editingLabel.set($event)"
+                name="editLabel"
+                maxlength="200"
+                aria-label="Edit clause type label"
+              />
+              <code class="value">{{ option.value }}</code>
+              <button
+                mat-icon-button
+                type="button"
+                aria-label="Save"
+                (click)="saveEdit(option.id)"
+                [disabled]="pendingId() === option.id"
+              >
+                <mat-icon>check</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                aria-label="Cancel edit"
+                (click)="cancelEditing()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            } @else {
+              <span data-test="clause-type-label" class="label">{{ option.label }}</span>
+              <code class="value">{{ option.value }}</code>
+              <button
+                mat-icon-button
+                type="button"
+                aria-label="Rename"
+                (click)="startEditing(option)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                type="button"
+                [attr.aria-label]="'Delete ' + option.label"
+                [attr.data-test]="'delete-clause-type-' + option.id"
+                (click)="delete(option)"
+                [disabled]="pendingId() === option.id"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

@@ -5,13 +5,13 @@
 } @else if (error()) {
   <div class="centered error">
     <p>{{ error() }}</p>
-    <a mat-button routerLink="/">
+    <a mat-button routerLink="/contracts">
       <mat-icon>arrow_back</mat-icon> Back to dashboard
     </a>
   </div>
 } @else if (document(); as doc) {
   <header class="doc-header">
-    <a mat-button routerLink="/" class="back-link">
+    <a mat-button routerLink="/contracts" class="back-link">
       <mat-icon>arrow_back</mat-icon> All contracts
     </a>
     <h1>{{ doc.title }}</h1>

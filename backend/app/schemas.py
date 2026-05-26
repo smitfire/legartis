@@ -1,8 +1,18 @@
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.clause_types import ClauseType
+
+def _extract_value(v: Any) -> Any:
+    """Pydantic ``before`` validator that pulls ``.value`` off an ORM ClauseType.
+
+    Lets us keep the wire field name ``clause_type: str`` while the SQLAlchemy
+    Label exposes ``clause_type`` as a joined relationship returning a
+    ``ClauseType`` row. Pass-through for plain strings so the same DTO works in
+    request shapes and other code paths.
+    """
+    return getattr(v, "value", v)
 
 
 class LabelOut(BaseModel):
@@ -12,10 +22,15 @@ class LabelOut(BaseModel):
 
     id: int
     sentence_id: int
-    clause_type: ClauseType
+    clause_type: str
     source: str
     confidence: float | None = None
     created_at: datetime
+
+    @field_validator("clause_type", mode="before")
+    @classmethod
+    def _flatten_clause_type(cls, v: Any) -> Any:
+        return _extract_value(v)
 
 
 class SentenceOut(BaseModel):
@@ -48,13 +63,13 @@ class DocumentSummary(BaseModel):
     uploaded_at: datetime
     sentence_count: int
     label_count: int
-    clause_types: list[ClauseType] = []
+    clause_types: list[str] = []
 
 
 class DocumentGroup(BaseModel):
     """A clause type and the documents that contain at least one label of it."""
 
-    clause_type: ClauseType
+    clause_type: str
     documents: list[DocumentSummary]
 
 

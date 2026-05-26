@@ -26,9 +26,9 @@ test('dashboard filter and search narrow to the labelled contract', async ({ pag
     .click();
   await page.getByRole('menuitem', { name: 'Confidentiality' }).click();
 
-  // Navigate to the dashboard.
+  // Navigate to the contracts dashboard.
   await page.getByRole('link', { name: 'All contracts' }).click();
-  await expect(page).toHaveURL('/');
+  await expect(page).toHaveURL('/contracts');
 
   // Confirm card visible.
   await expect(page.getByText('sample.txt').first()).toBeVisible();

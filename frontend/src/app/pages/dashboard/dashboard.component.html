@@ -54,6 +54,14 @@
       </mat-chip-option>
     }
   </mat-chip-listbox>
+  <a
+    mat-stroked-button
+    routerLink="/clause-types"
+    class="manage-link"
+    data-test="manage-clause-types-link"
+  >
+    <mat-icon>settings</mat-icon> Manage clause types
+  </a>
 </section>
 
 @if (state().loading) {

@@ -52,7 +52,7 @@
           <li class="manage__row">
             <span
               class="swatch"
-              [style.background]="colorFor(option.value).bg"
+              [style.background]="(option.value | clauseTypeColor).bg"
               aria-hidden="true"
             ></span>
 

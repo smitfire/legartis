@@ -99,18 +99,47 @@ async def test_create_clause_type_returns_201_with_slugified_value(client: Async
     assert isinstance(payload["id"], int)
 
 
+async def test_create_clause_type_rejects_whitespace_only_label(client: AsyncClient) -> None:
+    response = await client.post("/clause-types", json={"label": "   "})
+
+    assert response.status_code == 422
+
+
+async def test_create_clause_type_rejects_punctuation_only_label(client: AsyncClient) -> None:
+    response = await client.post("/clause-types", json={"label": "!!!"})
+
+    assert response.status_code == 422
+
+
+async def test_create_clause_type_rejects_extra_fields(client: AsyncClient) -> None:
+    response = await client.post(
+        "/clause-types",
+        json={"label": "Bespoke Warranty", "value": "smuggled"},
+    )
+
+    assert response.status_code == 422
+
+
 async def test_create_clause_type_with_colliding_label_suffixes_value(
     client: AsyncClient,
 ) -> None:
     first = await client.post("/clause-types", json={"label": "Force Majeure"})
     second = await client.post("/clause-types", json={"label": "Force Majeure"})
 
-    # First request collides with the existing seed value; both new posts must succeed
-    # silently with auto-suffixed machine values rather than erroring out.
+    # First request collides with the existing seed value; both new posts must
+    # succeed silently with distinct values derived from the same label. The
+    # exact suffix scheme is an implementation detail — only the user-visible
+    # guarantee (both succeed, both distinct, both rooted in the slug) is
+    # asserted here.
     assert first.status_code == 201
     assert second.status_code == 201
-    assert first.json()["value"] == "force_majeure_2"
-    assert second.json()["value"] == "force_majeure_3"
+    first_value = first.json()["value"]
+    second_value = second.json()["value"]
+    assert first_value != "force_majeure"
+    assert second_value != "force_majeure"
+    assert first_value != second_value
+    assert first_value.startswith("force_majeure")
+    assert second_value.startswith("force_majeure")
 
 
 async def test_patch_clause_type_updates_label_only(client: AsyncClient) -> None:

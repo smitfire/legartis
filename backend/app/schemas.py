@@ -23,7 +23,17 @@ class LabelOut(BaseModel):
     @field_validator("clause_type", mode="before")
     @classmethod
     def _flatten_clause_type(cls, v: Any) -> Any:
-        return getattr(v, "value", v)
+        # Two intended inputs: a joined ClauseType ORM row (use its `.value`)
+        # or a plain string (already the wire format). Anything else is a
+        # programmer error — raise so it surfaces as a 500 / test failure
+        # instead of silently serialising an int, dict, or None.
+        from app.models import ClauseType
+
+        if isinstance(v, ClauseType):
+            return v.value
+        if isinstance(v, str):
+            return v
+        raise TypeError(f"clause_type must be ClauseType or str, got {type(v).__name__}")
 
 
 class SentenceOut(BaseModel):

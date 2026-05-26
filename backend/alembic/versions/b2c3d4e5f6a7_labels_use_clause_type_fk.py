@@ -66,6 +66,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
     op.add_column("labels", sa.Column("clause_type", sa.Text(), nullable=True))
     op.execute(
         "UPDATE labels "
@@ -78,12 +79,14 @@ def downgrade() -> None:
     op.drop_constraint("fk_labels_clause_type_id", "labels", type_="foreignkey")
     op.drop_column("labels", "clause_type_id")
 
-    op.create_check_constraint(
-        "ck_label_clause_type",
-        "labels",
-        "clause_type IN ('limitation_of_liability', 'termination_for_convenience', "
-        "'non_compete', 'confidentiality', 'governing_law', 'indemnification', 'force_majeure')",
-    )
+    # Rebuild the CHECK from whatever values currently exist in clause_types
+    # rather than hardcoding the original seven. A user who added a custom
+    # type post-upgrade and then runs downgrade would otherwise see this
+    # ALTER reject existing rows, aborting the migration mid-way.
+    values = [v for (v,) in bind.execute(sa.text("SELECT value FROM clause_types")).all()]
+    if values:
+        quoted = ", ".join(f"'{v}'" for v in values)
+        op.create_check_constraint("ck_label_clause_type", "labels", f"clause_type IN ({quoted})")
     op.create_unique_constraint(
         "uq_label_sentence_clausetype", "labels", ["sentence_id", "clause_type"]
     )

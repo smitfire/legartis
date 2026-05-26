@@ -103,6 +103,18 @@ async def list_documents(
         )
 
     if type:
+        # Validate every requested value exists; an unknown value used to be
+        # rejected by the StrEnum at the FastAPI boundary and silently
+        # returning [] for a typo is a worse UX than a 422.
+        known = set(
+            (await db.scalars(select(ClauseType.value).where(ClauseType.value.in_(type)))).all()
+        )
+        unknown = [t for t in type if t not in known]
+        if unknown:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown clause type(s): {unknown!r}",
+            )
         stmt = (
             stmt.join(Sentence, Sentence.document_id == Document.id)
             .join(Label, Label.sentence_id == Sentence.id)

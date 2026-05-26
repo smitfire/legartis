@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
@@ -14,16 +14,36 @@ router = APIRouter(tags=["clause-types"])
 _MAX_COLLISION_SUFFIX = 50
 
 
+def _validate_label(v: str) -> str:
+    """Reject labels that are whitespace-only or slugify to an empty string.
+
+    ``Field(min_length=1)`` accepts ``"   "`` because it counts whitespace;
+    that label slugifies to ``""`` and we fall back to ``"clause_type"``,
+    polluting the taxonomy with effectively-blank rows. Strip first, then
+    enforce that the slug has at least one alphanumeric.
+    """
+    stripped = v.strip()
+    if not stripped:
+        raise ValueError("label cannot be empty or whitespace-only")
+    if not slugify(stripped):
+        raise ValueError("label must contain at least one alphanumeric character")
+    return stripped
+
+
 class ClauseTypeCreate(BaseModel):
     """Incoming payload for creating a clause type. ``value`` is derived server-side."""
 
-    label: str = Field(min_length=1, max_length=200)
+    model_config = ConfigDict(extra="forbid")
+
+    label: Annotated[str, Field(min_length=1, max_length=200), AfterValidator(_validate_label)]
 
 
 class ClauseTypeUpdate(BaseModel):
     """Patch payload. Only ``label`` is editable; ``value`` is immutable by design."""
 
-    label: str = Field(min_length=1, max_length=200)
+    model_config = ConfigDict(extra="forbid")
+
+    label: Annotated[str, Field(min_length=1, max_length=200), AfterValidator(_validate_label)]
 
 
 class ClauseTypeOption(BaseModel):

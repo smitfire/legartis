@@ -8,7 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 
 import { ApiService } from '../../core/api.service';
-import { clauseTypeColor } from '../../core/clause-type-color';
+import { ClauseTypeColorPipe } from '../../core/clause-type-color.pipe';
 import type { ClauseType, ClauseTypeOption, DocumentDetail } from '../../core/models';
 
 /**
@@ -28,6 +28,7 @@ import type { ClauseType, ClauseTypeOption, DocumentDetail } from '../../core/mo
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
+    ClauseTypeColorPipe,
   ],
   templateUrl: './document-detail.component.html',
   styleUrl: './document-detail.component.scss',
@@ -52,10 +53,6 @@ export class DocumentDetailComponent {
       const id = this.id();
       if (id) this.load();
     });
-  }
-
-  colorFor(type: ClauseType): { bg: string; fg: string } {
-    return clauseTypeColor(type);
   }
 
   labelFor(type: ClauseType): string {

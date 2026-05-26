@@ -43,6 +43,13 @@ async def test_filters_by_q_against_title_and_content_case_insensitively(
     assert [d["title"] for d in response.json()] == ["service-agreement.md"]
 
 
+async def test_filters_by_unknown_clause_type_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/documents", params={"type": "does_not_exist"})
+
+    assert response.status_code == 422
+    assert "does_not_exist" in response.json()["detail"]
+
+
 async def test_filters_by_single_clause_type(client: AsyncClient) -> None:
     nda = await _upload(client, "nda.txt", "Each party shall keep the data confidential.")
     msa = await _upload(client, "msa.txt", "Provider limits liability to fees paid.")

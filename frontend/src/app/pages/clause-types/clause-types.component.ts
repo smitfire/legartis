@@ -10,7 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../core/api.service';
-import { clauseTypeColor } from '../../core/clause-type-color';
+import { ClauseTypeColorPipe } from '../../core/clause-type-color.pipe';
 import type { ClauseTypeOption } from '../../core/models';
 
 interface ViewState {
@@ -36,6 +36,7 @@ interface EditingState {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    ClauseTypeColorPipe,
   ],
   templateUrl: './clause-types.component.html',
   styleUrl: './clause-types.component.scss',
@@ -55,10 +56,6 @@ export class ClauseTypesComponent {
 
   constructor() {
     this.refresh();
-  }
-
-  colorFor(value: string): { bg: string; fg: string } {
-    return clauseTypeColor(value);
   }
 
   startEditing(option: ClauseTypeOption): void {
@@ -118,18 +115,24 @@ export class ClauseTypesComponent {
     this.state.update((s) => ({ ...s, loading: true, error: null }));
     this.api.listClauseTypes().subscribe({
       next: (items) => this.state.set({ loading: false, items, error: null }),
+      // Preserve the previously-rendered items on a transient refresh failure
+      // so the user doesn't see a phantom "no clause types" empty state.
       error: (err) =>
-        this.state.set({
+        this.state.update((s) => ({
           loading: false,
-          items: [],
+          items: s.items,
           error: err?.message ?? 'Failed to load clause types',
-        }),
+        })),
     });
   }
 
   private handleError(err: unknown, fallback: string): void {
     this.creating.set(false);
     this.pendingId.set(null);
+    // Surface the full error in devtools so a user report can be traced to
+    // the JS-side cause (HttpErrorResponse, TypeError from an rxjs regression,
+    // etc.). The snackbar gets the most-useful one-liner.
+    console.error(err);
     // HttpErrorResponse buries FastAPI's actionable `detail` field under
     // `err.error`; the top-level `message` is the framework's generic
     // "Http failure response for /api/..." string. Surface the backend

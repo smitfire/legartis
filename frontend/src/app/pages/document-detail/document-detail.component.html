@@ -34,8 +34,8 @@
             @for (label of sentence.labels; track label.id) {
               <span
                 class="chip"
-                [style.background]="colorFor(label.clause_type).bg"
-                [style.color]="colorFor(label.clause_type).fg"
+                [style.background]="(label.clause_type | clauseTypeColor).bg"
+                [style.color]="(label.clause_type | clauseTypeColor).fg"
               >
                 {{ labelFor(label.clause_type) }}
                 <button
@@ -73,7 +73,7 @@
                   >
                     <span
                       class="swatch"
-                      [style.background]="colorFor(type.value).bg"
+                      [style.background]="(type.value | clauseTypeColor).bg"
                       aria-hidden="true"
                     ></span>
                     {{ type.label }}

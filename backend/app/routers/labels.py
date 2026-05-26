@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -8,6 +10,7 @@ from app.deps import DbSession
 from app.models import ClauseType, Label, Sentence
 from app.schemas import LabelOut
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["labels"])
 
 
@@ -61,9 +64,14 @@ async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) ->
             # Clause type was deleted between the lookup above and the commit.
             detail = "Clause type was removed before this label could be saved."
             raise HTTPException(status.HTTP_409_CONFLICT, detail=detail) from exc
+        # Avoid leaking constraint/column names back to the client; log instead.
+        logger.warning(
+            "Label insert failed with unexpected IntegrityError",
+            extra={"sentence_id": sentence_id, "clause_type_id": clause_type.id, "cause": cause},
+        )
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Label violates a database constraint: {cause}",
+            detail="Label violates a database constraint.",
         ) from exc
 
     refreshed = await db.scalar(

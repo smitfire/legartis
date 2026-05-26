@@ -15,6 +15,10 @@ from app.deps import get_db
 from app.main import app
 from app.models import Base, ClauseType
 
+# Mirrors the seed data inserted by Alembic revision a1b2c3d4e5f6.
+# Kept in sync by hand on purpose: migrations are frozen snapshots, so
+# importing a live module into them would defeat the point. If either side
+# changes, update both.
 SEED_CLAUSE_TYPES: list[tuple[str, str]] = [
     ("limitation_of_liability", "Limitation of Liability"),
     ("termination_for_convenience", "Termination for Convenience"),

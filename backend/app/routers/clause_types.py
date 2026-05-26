@@ -45,11 +45,14 @@ class ClauseTypeCount(ClauseTypeOption):
 def _is_value_uniqueness_violation(exc: IntegrityError) -> bool:
     """True if ``exc`` is a uniqueness clash on ``clause_types.value``.
 
-    Any other integrity failure (FK, future NOT NULL, future CHECK) must
-    surface as a real bug rather than being silently folded into the retry.
+    Matches the constraint name (Postgres) or the qualified column phrase
+    (SQLite) explicitly — a generic ``"unique" in cause`` would also match
+    a future unique on ``label``, since Postgres always phrases unique
+    violations as "duplicate key value violates unique constraint ..." and
+    that "value" is the literal keyword, not the column name.
     """
     cause = str(getattr(exc, "orig", exc)).lower()
-    return "unique" in cause and "value" in cause
+    return "uq_clause_types_value" in cause or "clause_types.value" in cause
 
 
 async def _insert_with_value_suffix(db: DbSession, label: str) -> ClauseType:

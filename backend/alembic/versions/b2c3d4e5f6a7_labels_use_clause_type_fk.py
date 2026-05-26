@@ -18,6 +18,25 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # Pre-flight: the backfill below produces NULL for any orphan label whose
+    # clause_type text does not exist in clause_types. The previous CHECK
+    # constraint + seed migration make this impossible in practice, but a
+    # mismatch here would surface as an opaque NOT NULL violation on the
+    # subsequent ALTER. Fail loudly with the offending values instead.
+    bind = op.get_bind()
+    orphans = bind.execute(
+        sa.text(
+            "SELECT DISTINCT labels.clause_type FROM labels "
+            "WHERE labels.clause_type NOT IN (SELECT value FROM clause_types)"
+        )
+    ).scalars().all()
+    if orphans:
+        raise RuntimeError(
+            f"Cannot migrate labels: {len(orphans)} clause_type value(s) have no "
+            f"row in clause_types: {sorted(orphans)!r}. Insert them into "
+            f"clause_types before re-running this migration."
+        )
+
     # Add the FK column as nullable so we can backfill from the existing text column.
     op.add_column("labels", sa.Column("clause_type_id", sa.Integer(), nullable=True))
     op.execute(

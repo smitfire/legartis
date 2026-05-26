@@ -121,7 +121,12 @@ export class ClauseTypesComponent {
 
   private handleError(err: unknown, fallback: string): void {
     this.pendingId.set(null);
-    const message = (err as { message?: string })?.message ?? fallback;
+    // HttpErrorResponse buries FastAPI's actionable `detail` field under
+    // `err.error`; the top-level `message` is the framework's generic
+    // "Http failure response for /api/..." string. Surface the backend
+    // reason first so the user sees what actually went wrong.
+    const httpError = err as { error?: { detail?: string }; message?: string };
+    const message = httpError?.error?.detail ?? httpError?.message ?? fallback;
     this.snackBar.open(message, 'Dismiss', { duration: 5000 });
   }
 }

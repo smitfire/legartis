@@ -27,12 +27,24 @@ class ClauseTypeUpdate(BaseModel):
 _MAX_COLLISION_SUFFIX = 50
 
 
+def _is_value_uniqueness_violation(exc: IntegrityError) -> bool:
+    """True if ``exc`` is a uniqueness clash on ``clause_types.value``.
+
+    We only retry collisions on the ``value`` column — any other integrity
+    failure (FK, future NOT NULL, future CHECK) is a real bug and must
+    surface, not get folded into the "couldn't find a free value" 409.
+    """
+    cause = str(getattr(exc, "orig", exc)).lower()
+    return "unique" in cause and ("uq_clause_types_value" in cause or "value" in cause)
+
+
 async def _insert_with_value_suffix(db: DbSession, label: str) -> ClauseType:
     """Insert a new ClauseType, silently suffixing ``value`` on uniqueness clashes.
 
     The first attempt uses the bare slug; if that collides, ``_2``, ``_3``, …
     are tried up to ``_MAX_COLLISION_SUFFIX``. The label is stored verbatim
-    in every case so users see the name they typed.
+    in every case so users see the name they typed. Non-uniqueness integrity
+    failures are re-raised untouched so they surface as real bugs.
     """
     base = slugify(label) or "clause_type"
     for suffix in range(1, _MAX_COLLISION_SUFFIX + 1):
@@ -41,8 +53,10 @@ async def _insert_with_value_suffix(db: DbSession, label: str) -> ClauseType:
         db.add(clause_type)
         try:
             await db.commit()
-        except IntegrityError:
+        except IntegrityError as exc:
             await db.rollback()
+            if not _is_value_uniqueness_violation(exc):
+                raise
             continue
         await db.refresh(clause_type)
         return clause_type
@@ -61,6 +75,11 @@ class ClauseTypeOption(BaseModel):
     label: str
 
 
+def _to_option(ct: ClauseType) -> ClauseTypeOption:
+    """Single source of truth for ORM-to-DTO mapping of a ClauseType row."""
+    return ClauseTypeOption(id=ct.id, value=ct.value, label=ct.label)
+
+
 class ClauseTypeCount(BaseModel):
     """Dashboard facet: a clause type with the number of documents that use it."""
 
@@ -74,10 +93,7 @@ class ClauseTypeCount(BaseModel):
 async def list_clause_types(db: DbSession) -> list[ClauseTypeOption]:
     """Return every clause type currently registered, ordered by id."""
     stmt = select(ClauseType).order_by(ClauseType.id)
-    return [
-        ClauseTypeOption(id=ct.id, value=ct.value, label=ct.label)
-        for ct in (await db.scalars(stmt)).all()
-    ]
+    return [_to_option(ct) for ct in (await db.scalars(stmt)).all()]
 
 
 @router.post("/clause-types", status_code=status.HTTP_201_CREATED)
@@ -87,8 +103,7 @@ async def create_clause_type(payload: ClauseTypeCreate, db: DbSession) -> Clause
     Duplicate slugs are auto-resolved with a numeric suffix (``_2``, ``_3``, …)
     so the UX never blocks the user on a collision.
     """
-    clause_type = await _insert_with_value_suffix(db, payload.label)
-    return ClauseTypeOption(id=clause_type.id, value=clause_type.value, label=clause_type.label)
+    return _to_option(await _insert_with_value_suffix(db, payload.label))
 
 
 @router.patch("/clause-types/{clause_type_id}")
@@ -102,7 +117,7 @@ async def update_clause_type(
     clause_type.label = payload.label
     await db.commit()
     await db.refresh(clause_type)
-    return ClauseTypeOption(id=clause_type.id, value=clause_type.value, label=clause_type.label)
+    return _to_option(clause_type)
 
 
 @router.delete("/clause-types/{clause_type_id}", status_code=status.HTTP_204_NO_CONTENT)

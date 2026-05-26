@@ -11,7 +11,7 @@
     <form
       data-test="new-clause-type-form"
       class="manage__form"
-      (submit)="$event.preventDefault(); create()"
+      (ngSubmit)="create()"
     >
       <mat-form-field appearance="outline" class="manage__form-field">
         <mat-label>New clause type</mat-label>

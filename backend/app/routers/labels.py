@@ -54,20 +54,32 @@ async def create_label(sentence_id: int, payload: LabelCreate, db: DbSession) ->
     except IntegrityError as exc:
         await db.rollback()
         cause = str(getattr(exc, "orig", exc)).lower()
-        if "unique" in cause or "uq_label_sentence_clausetype" in cause:
+        if "uq_label_sentence_clausetype" in cause or "unique" in cause:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 detail="Sentence is already labelled with this clause type.",
             ) from exc
+        if "foreign key" in cause or "fk_labels_clause_type_id" in cause:
+            # Clause type was deleted between the lookup above and the commit.
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Clause type was removed before this label could be saved.",
+            ) from exc
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Label violates a database constraint.",
+            detail=f"Label violates a database constraint: {cause}",
         ) from exc
 
     refreshed = await db.scalar(
         select(Label).options(joinedload(Label.clause_type)).where(Label.id == label.id)
     )
-    assert refreshed is not None
+    if refreshed is None:
+        # We just committed a Label with this id inside the same session, so
+        # this is unreachable unless the row was deleted from underneath us.
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Label was committed but could not be re-read.",
+        )
     return refreshed
 
 

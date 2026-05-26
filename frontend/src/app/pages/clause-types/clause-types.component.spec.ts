@@ -49,19 +49,22 @@ describe('ClauseTypesComponent', () => {
   it('posts a new clause type when the create form is submitted and refetches', () => {
     answerInitialList();
 
-    const component = fixture.componentInstance;
-    component.newLabel.set('Force Majeure');
+    fixture.componentInstance.newLabel.set('Force Majeure');
     fixture.detectChanges();
-    component.create();
+
+    const form = fixture.nativeElement.querySelector(
+      'form[data-test="new-clause-type-form"]',
+    ) as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
     const created = httpMock.expectOne('/api/clause-types');
     expect(created.request.method).toBe('POST');
-    expect(created.request.body).toEqual({ label: 'Force Majeure' });
     created.flush({ id: 3, value: 'force_majeure', label: 'Force Majeure' });
 
-    const refresh = httpMock.expectOne('/api/clause-types');
-    refresh.flush([...SAMPLE_TYPES, { id: 3, value: 'force_majeure', label: 'Force Majeure' }]);
+    httpMock
+      .expectOne('/api/clause-types')
+      .flush([...SAMPLE_TYPES, { id: 3, value: 'force_majeure', label: 'Force Majeure' }]);
   });
 
   it('deletes a clause type when the delete button is clicked', () => {

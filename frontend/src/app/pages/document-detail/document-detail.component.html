@@ -5,13 +5,13 @@
 } @else if (error()) {
   <div class="centered error">
     <p>{{ error() }}</p>
-    <a mat-button routerLink="/">
+    <a mat-button routerLink="/contracts">
       <mat-icon>arrow_back</mat-icon> Back to dashboard
     </a>
   </div>
 } @else if (document(); as doc) {
   <header class="doc-header">
-    <a mat-button routerLink="/" class="back-link">
+    <a mat-button routerLink="/contracts" class="back-link">
       <mat-icon>arrow_back</mat-icon> All contracts
     </a>
     <h1>{{ doc.title }}</h1>
@@ -34,8 +34,8 @@
             @for (label of sentence.labels; track label.id) {
               <span
                 class="chip"
-                [style.background]="colorFor(label.clause_type).bg"
-                [style.color]="colorFor(label.clause_type).fg"
+                [style.background]="(label.clause_type | clauseTypeColor).bg"
+                [style.color]="(label.clause_type | clauseTypeColor).fg"
               >
                 {{ labelFor(label.clause_type) }}
                 <button
@@ -73,7 +73,7 @@
                   >
                     <span
                       class="swatch"
-                      [style.background]="colorFor(type.value).bg"
+                      [style.background]="(type.value | clauseTypeColor).bg"
                       aria-hidden="true"
                     ></span>
                     {{ type.label }}

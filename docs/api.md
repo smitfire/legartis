@@ -34,18 +34,52 @@ curl http://localhost:8000/clause-types
 
 ```json
 [
-  { "value": "limitation_of_liability",   "label": "Limitation of Liability" },
-  { "value": "termination_for_convenience","label": "Termination for Convenience" },
-  { "value": "non_compete",               "label": "Non-Compete" },
-  { "value": "confidentiality",           "label": "Confidentiality" },
-  { "value": "governing_law",             "label": "Governing Law" },
-  { "value": "indemnification",           "label": "Indemnification" },
-  { "value": "force_majeure",             "label": "Force Majeure" }
+  { "id": 1, "value": "limitation_of_liability",    "label": "Limitation of Liability" },
+  { "id": 2, "value": "termination_for_convenience","label": "Termination for Convenience" },
+  { "id": 3, "value": "non_compete",                "label": "Non-Compete" },
+  { "id": 4, "value": "confidentiality",            "label": "Confidentiality" },
+  { "id": 5, "value": "governing_law",              "label": "Governing Law" },
+  { "id": 6, "value": "indemnification",            "label": "Indemnification" },
+  { "id": 7, "value": "force_majeure",              "label": "Force Majeure" }
 ]
 ```
 
-The `value` is the machine identifier persisted in `labels.clause_type`. The
-`label` is the human-friendly display string.
+The `value` is the immutable machine identifier referenced by `labels`. The
+`label` is the human-friendly display string and is the only field that can
+be edited. `id` is the stable numeric primary key used by the CRUD
+endpoints below.
+
+### `POST /clause-types`
+
+Create a new clause type. `value` is server-derived: the backend slugifies
+`label` and silently suffixes (`_2`, `_3`, …) on uniqueness collisions, so
+the UX never blocks on a clash.
+
+```bash
+curl -X POST http://localhost:8000/clause-types \
+  -H 'Content-Type: application/json' \
+  -d '{"label": "Service Level Agreement"}'
+```
+
+```json
+{ "id": 8, "value": "service_level_agreement", "label": "Service Level Agreement" }
+```
+
+### `PATCH /clause-types/{id}`
+
+Update the display label. `value` is immutable. Returns the refreshed
+option; 404 if the id doesn't exist.
+
+```bash
+curl -X PATCH http://localhost:8000/clause-types/8 \
+  -H 'Content-Type: application/json' \
+  -d '{"label": "SLA"}'
+```
+
+### `DELETE /clause-types/{id}`
+
+Delete a clause type. **Cascades to every label that referenced it.** Returns
+204 on success, 404 if the id doesn't exist.
 
 ---
 
@@ -236,7 +270,7 @@ Error model:
 |---|---|
 | `404` | Sentence does not exist. |
 | `409` | A label with the same `(sentence_id, clause_type)` already exists. |
-| `422` | `clause_type` is not one of the seven seed values, or another schema/CHECK violation. |
+| `422` | `clause_type` is not a registered value in `clause_types`, or another schema constraint failed. |
 
 The distinction between 409 and 422 matters: the `IntegrityError` handler
 inspects the database message — a `UNIQUE` violation becomes 409 *idempotently*,

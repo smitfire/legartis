@@ -54,6 +54,14 @@
       </mat-chip-option>
     }
   </mat-chip-listbox>
+  <a
+    mat-stroked-button
+    routerLink="/clause-types"
+    class="manage-link"
+    data-test="manage-clause-types-link"
+  >
+    <mat-icon>settings</mat-icon> Manage clause types
+  </a>
 </section>
 
 @if (state().loading) {
@@ -71,8 +79,8 @@
         <h2 class="group-title">
           <span
             class="chip"
-            [style.background]="colorFor(group.clause_type).bg"
-            [style.color]="colorFor(group.clause_type).fg"
+            [style.background]="(group.clause_type | clauseTypeColor).bg"
+            [style.color]="(group.clause_type | clauseTypeColor).fg"
             >{{ labelFor(group.clause_type) }}</span
           >
           <span class="group-count">{{ group.documents.length }}</span>
@@ -121,8 +129,8 @@
             @for (ct of doc.clause_types; track ct) {
               <span
                 class="chip"
-                [style.background]="colorFor(ct).bg"
-                [style.color]="colorFor(ct).fg"
+                [style.background]="(ct | clauseTypeColor).bg"
+                [style.color]="(ct | clauseTypeColor).fg"
                 >{{ labelFor(ct) }}</span
               >
             }

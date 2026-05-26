@@ -6,7 +6,13 @@
   </a>
   <span class="spacer"></span>
   <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-    <mat-icon>dashboard</mat-icon> Dashboard
+    <mat-icon>home</mat-icon> Home
+  </a>
+  <a mat-button routerLink="/contracts" routerLinkActive="active">
+    <mat-icon>description</mat-icon> Contracts
+  </a>
+  <a mat-button routerLink="/clause-types" routerLinkActive="active">
+    <mat-icon>category</mat-icon> Clause types
   </a>
   <a mat-flat-button color="primary" routerLink="/upload">
     <mat-icon>upload_file</mat-icon> Upload contract

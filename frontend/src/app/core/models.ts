@@ -1,11 +1,9 @@
-export type ClauseType =
-  | 'limitation_of_liability'
-  | 'termination_for_convenience'
-  | 'non_compete'
-  | 'confidentiality'
-  | 'governing_law'
-  | 'indemnification'
-  | 'force_majeure';
+/**
+ * Machine identifier for a clause type. Used to be a closed string-union over the
+ * seven seed values; with dynamic clause-type CRUD it's just a stable string. The
+ * full option (with display label + numeric id) is fetched from the backend.
+ */
+export type ClauseType = string;
 
 /**
  * Provenance of a label. `MANUAL` is a human assignment; `AUTO` is reserved for
@@ -14,6 +12,7 @@ export type ClauseType =
 export type LabelSource = 'MANUAL' | 'AUTO';
 
 export interface ClauseTypeOption {
+  id: number;
   value: ClauseType;
   label: string;
 }

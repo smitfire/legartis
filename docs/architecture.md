@@ -79,29 +79,38 @@ erDiagram
     text      text
   }
   labels {
+    int        id              PK
+    int        sentence_id     FK
+    int        clause_type_id  FK
+    enum       source          "MANUAL · AUTO"
+    float      confidence      "nullable (AUTO only)"
+    timestamp  created_at
+  }
+  clause_types {
     int        id           PK
-    int        sentence_id  FK
-    enum       clause_type  "CHECK ∈ 7 values"
-    enum       source       "MANUAL · AUTO"
-    float      confidence   "nullable (AUTO only)"
+    text       value        "UNIQUE, immutable, slug"
+    text       label        "human display name"
     timestamp  created_at
   }
 ```
 
 **Unique constraints.** `sentences(document_id, position)` so ordering is data,
-not display; `labels(sentence_id, clause_type)` so the same type can't be
+not display; `labels(sentence_id, clause_type_id)` so the same type can't be
 applied twice — the manual UI relies on this to be idempotent (409 on
 duplicate), and an auto-labeller will rely on it for `INSERT … ON CONFLICT DO
 NOTHING`.
 
-**Cascades.** Both foreign keys are `ON DELETE CASCADE`. Deleting a document
-removes its sentences and their labels in a single statement.
+**Cascades.** All three foreign keys are `ON DELETE CASCADE`. Deleting a
+document removes its sentences and their labels in a single statement;
+deleting a clause type removes every label that referenced it.
 
-**Why `CHECK` not Postgres `ENUM`.** ENUMs require a migration to add a value;
-the CHECK constraint is regenerated from `app/clause_types.py:ClauseType` (a
-`StrEnum`), so adding a clause type is a one-file change. The constant
-`_VALID_CLAUSE_TYPES_SQL` in `app/models.py` is computed from the enum so the
-two cannot drift.
+**Why a table not a `CHECK` constraint.** See
+[ADR-0001](adr/0001-dynamic-clause-types.md). The original design held a
+`StrEnum` and regenerated a `CHECK` clause from it; that locked the
+taxonomy at deploy time and blocked AI-proposed types. Lifting the seven
+seed values into rows costs one extra JOIN on dashboard queries — covered
+by an index on `labels.clause_type_id` — in exchange for runtime
+extensibility.
 
 ## Why this shape
 
@@ -109,7 +118,7 @@ two cannot drift.
 |---|---|---|
 | **FastAPI + SQLAlchemy 2.0 async** | Django, Flask | Pydantic v2 is the DTO layer — one schema for OpenAPI + validation + serialization. Async story matches frontend streaming once we add LLM features. |
 | **`pysbd` for segmentation** | regex on `[.!?]`, spaCy | Legal abbreviations (`Mr.`, `Jan. 1, 2025`, `i.e.`) split incorrectly on regex; spaCy needs a 350 MB model and would still need post-processing. `pysbd` is pure-Python, deterministic, MIT. |
-| **Closed-set `StrEnum` + CHECK** | join table `clause_types` | The set is closed (7 entries) and rarely changes. A join table adds a join on every dashboard query, a seed migration, an endpoint, and a Pydantic model — for data that's already a constant in code. |
+| **Dynamic `clause_types` table** | closed-set `StrEnum` + CHECK | Original design used the enum; reversed in [ADR-0001](adr/0001-dynamic-clause-types.md) once the AI-proposed-types extension needed to extend the taxonomy at runtime. The seven seed values still ship in the migration so the dashboard looks identical post-cutover. |
 | **`labels.source` + `confidence` columns** | nothing (defer) | These are the *only* schema concession to the case-study's auto-labelling pair-programming session. They cost nothing now and turn the auto-labeller into one `INSERT … ON CONFLICT DO NOTHING`. See [`ai-features.md`](ai-features.md). |
 | **Server-side search/filter/group on one endpoint** | three endpoints | The same resource, three orthogonal filters. Splitting forces the frontend to coordinate three requests and reconcile results client-side. Single endpoint is one DB roundtrip and one Pydantic response. |
 | **Multi-`?type=` is OR'd** | AND | "Show me contracts with LoL **or** Non-Compete" matches a legal team's mental model. AND would require already knowing the intersection exists. |

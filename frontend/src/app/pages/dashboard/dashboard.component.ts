@@ -15,7 +15,7 @@ import { RouterLink } from '@angular/router';
 import { Subject, debounceTime } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
-import { clauseTypeColor } from '../../core/clause-type-color';
+import { ClauseTypeColorPipe } from '../../core/clause-type-color.pipe';
 import type {
   ClauseType,
   ClauseTypeCount,
@@ -57,6 +57,7 @@ interface ViewState {
     MatSlideToggleModule,
     MatTooltipModule,
     RouterLink,
+    ClauseTypeColorPipe,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -113,10 +114,6 @@ export class DashboardComponent {
     this.selectedTypes.set(new Set());
     this.groupByType.set(false);
     this.refresh();
-  }
-
-  colorFor(type: ClauseType): { bg: string; fg: string } {
-    return clauseTypeColor(type);
   }
 
   labelFor(type: ClauseType): string {

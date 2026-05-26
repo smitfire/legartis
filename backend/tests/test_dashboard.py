@@ -8,7 +8,8 @@ async def _upload(client: AsyncClient, name: str, body: str) -> dict[str, Any]:
         "/documents",
         files={"file": (name, body.encode("utf-8"), "text/plain")},
     )
-    return response.json()
+    payload: dict[str, Any] = response.json()
+    return payload
 
 
 async def _label(client: AsyncClient, sentence_id: int, clause_type: str) -> None:
@@ -40,6 +41,13 @@ async def test_filters_by_q_against_title_and_content_case_insensitively(
     response = await client.get("/documents", params={"q": "LIABILITY"})
 
     assert [d["title"] for d in response.json()] == ["service-agreement.md"]
+
+
+async def test_filters_by_unknown_clause_type_returns_422(client: AsyncClient) -> None:
+    response = await client.get("/documents", params={"type": "does_not_exist"})
+
+    assert response.status_code == 422
+    assert "does_not_exist" in response.json()["detail"]
 
 
 async def test_filters_by_single_clause_type(client: AsyncClient) -> None:

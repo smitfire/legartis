@@ -33,7 +33,7 @@ Before any commit that finishes a feature, run the `full-review` skill. It auto-
 
 ## Domain anti-patterns
 - A clause is **a single sentence** by case-study definition. Don't merge or split sentences. Preserve original text byte-for-byte.
-- Clause types are an open set, but for the case study limit the seed list to ~5–10 common types ("Limitation of Liability", "Termination for Convenience", "Non-Compete", "Confidentiality", "Governing Law"). Don't model an entire taxonomy.
+- Clause types are stored in a `clause_types` table with full CRUD (see [docs/adr/0001-dynamic-clause-types.md](docs/adr/0001-dynamic-clause-types.md)). The seed list is small (~7 common types). Don't pre-populate an exhaustive taxonomy — let users (and later the AI) add what they need.
 - Uploaded files are plain text or markdown only. Don't add PDF/DOCX parsing — out of scope.
 - Search/filter/grouping in the dashboard is server-side via query params (`?q=`, `?type=`, `?group_by=`). Don't ship client-side fuzzy search libraries.
 

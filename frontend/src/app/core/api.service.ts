@@ -85,4 +85,22 @@ export class ApiService {
   deleteLabel(labelId: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/labels/${labelId}`);
   }
+
+  /**
+   * Create a clause type. The backend slugifies the label into the immutable
+   * machine `value`; on collision it silently appends a numeric suffix.
+   */
+  createClauseType(label: string): Observable<ClauseTypeOption> {
+    return this.http.post<ClauseTypeOption>(`${this.base}/clause-types`, { label });
+  }
+
+  /** Update a clause type's display label; the machine `value` is immutable. */
+  updateClauseType(id: number, label: string): Observable<ClauseTypeOption> {
+    return this.http.patch<ClauseTypeOption>(`${this.base}/clause-types/${id}`, { label });
+  }
+
+  /** Delete a clause type; cascades to every label referencing it. */
+  deleteClauseType(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/clause-types/${id}`);
+  }
 }
